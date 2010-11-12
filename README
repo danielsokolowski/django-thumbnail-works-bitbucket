@@ -1,0 +1,66 @@
+django-thumbnail-works README
+========================================================================
+django-thumbnail-works provides an enhanced ImageField that generates and
+manages thumbnails of the uploaded image.
+
+Project Development Web Site:
+ * https://www.codetrax.org/projects/django-thumbnail-works
+
+Public Source Code Repository:
+ * https://source.codetrax.org/hgroot/django-thumbnail-works
+
+
+How this distribution package is organized
+========================================================================
+The following list outlines the kind of information each of the files of this
+distribution package contains:
+
+ * AUTHORS  : List of all authors and contributors.
+ * BUGS     : Information about how to file bug reports or ask for new features.
+ * HELP     : Instructions on how to use this software.
+ * INSTALL  : Information on how to install this application.
+ * LICENSE  : The terms of the license that governs your use of this software.
+ * NOTICE   : Copyright, trademark, attribution and sponsorship information.
+ * SUPPORT  : Information on how to get support for this software.
+ * README   : This file.
+
+
+How to read the HELP document
+========================================================================
+The HELP document is written in reStructuredText (rst). Although
+reStructuredText is an easy-to-read plain text markup format, it is
+recommended to convert it to HTML for a better reading experience.
+
+In order to convert this document to HTML you need `docutils`, which
+you can install in your system using `pip`::
+
+    pip install docutils
+
+Or `easy_install`:
+
+    easy_install docutils
+
+Once `docutils` is installed, you can use the `rst2html.py` utility to
+perform the conversion:
+
+    rst2html.py HELP help.html
+
+Then use any web browser to view the exported `help.html` file.
+
+
+License
+========================================================================
+Copyright 2010 George Notaras <gnot [at] g-loaded.eu>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+A copy of the License exists in the product distribution; the LICENSE file.
+For copyright notes please read the NOTICE file.
+

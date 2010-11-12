@@ -28,5 +28,13 @@
 from django.conf import settings
 
 
-MY_APP_SETTING = getattr(settings, 'MY_APP_SETTING', '...')
+# JPEG, PNG
+THUMBNAILS_FORMAT = getattr(settings, 'DTW_THUMBNAILS_FORMAT', 'JPEG')
+
+# For JPEG format only
+THUMBNAILS_QUALITY = getattr(settings, 'DTW_THUMBNAILS_QUALITY', 85)
+
+
+# This is the name of the directory where the thumbnails will be stored
+THUMBNAILS_DIRNAME = getattr(settings, 'DTW_THUMBNAILS_DIRNAME', '')
 

@@ -24,3 +24,21 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
+
+from thumbnail_works.exceptions import ImageSizeError
+
+
+def get_width_height_from_string(self, size):
+    try:
+        bits = size.split('x', 1)
+    except AttributeError:
+        raise ImageSizeError('size must be a string of the form WIDTHxHEIGHT')
+    if len(bits) != 2:
+        raise ImageSizeError('size must be a string of the form WIDTHxHEIGHT')
+    try:
+        size_x = int(bits[0])
+        size_y = int(bits[1])
+    except ValueError:
+        raise ImageSizeError('size\'s WIDTH and HEIGHT must be integers')
+    return size_x, size_y
+

@@ -1,0 +1,4 @@
+
+
+class ImageSizeError(Exception):
+    pass

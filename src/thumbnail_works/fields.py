@@ -25,36 +25,59 @@
 #  limitations under the License.
 #
 
-import os
+import copy
+import StringIO
+from PIL import Image
 
 from django.db.models.fields.files import ImageField, ImageFieldFile
+from django.core.files.base import ContentFile
+from django.core.files import File
 
 from thumbnail_works.exceptions import ImageSizeError
-from thumbnail_works.utils import get_width_height_from_string
+from thumbnail_works.utils import get_width_height_from_string, get_thumbnail_path
+from thumbnail_works import settings
+from thumbnail_works import image_processors
 
 
 
+class ImageObject:
+    
+    def get_img_data_from_file(self, f_obj):
+        
+        # PIL_Image.open() accepts a file-like object, but it is needed
+        # to rewind it back to be able to get the data
+        f_obj.seek(0)
+        im = Image.open(f_obj)
+        
+        # Convert to RGB if necessary
+        if im.mode not in ('L', 'RGB', 'RGBA'):
+            im = im.convert('RGB')
+        
+        return im
+    
+    def get_file_for_img_data(self, im):
+        
+        io = StringIO.StringIO()
+    
+        if settings.THUMBNAILS_FORMAT == 'JPEG':
+            im.save(io, 'JPEG', quality=settings.THUMBNAILS_QUALITY)
+        elif settings.THUMBNAILS_FORMAT == 'PNG':
+            im.save(io, 'PNG')
+        
+        #return ContentFile(io.getvalue())
+        return File(io)
+    
+    
 class Thumbnail:
     
     def __init__(self, name, size, source):
-        self.name = self._get_name(name)
+        self.name = self._get_name(name)    # the thumbnail name as set in the dictionary
         self.width, self.height = get_width_height_from_string(size)
-        self.url = self._get_url(source.url)
+        self.url = get_thumbnail_path(source.url, self.name)
     
     def _get_name(self, name):
         return name.replace(' ', '_')
-    
-    def _get_url(self, source_url):
-        """
-        source: /media/images/photo.jpg
-        thumbnail: /media/images/photo.<thumbname>.jpg
-        """
-        root_dir = os.path.dirname(source_url)  # /media/images
-        filename = os.path.basename(source_url)
-        base_filename, ext = os.path.splitext(filename)
-        return os.path.join(root_dir, '%s.%s.%s' % (base_filename, self.name, ext))
-    
-        
+
         
 class EnhancedImageFieldFile(ImageFieldFile):
     
@@ -68,24 +91,47 @@ class EnhancedImageFieldFile(ImageFieldFile):
                 setattr(self, thumbnail_name, thumbnail_obj)
     
     def save(self, name, content, save=True):
+        """
+        name: is the path on the filesystem of the original image
+        """
         
         # Before saving, resize the source image if a size has been set
-        width, height = get_width_height_from_string(self.field.resize_source)
+        new_content = copy.copy(content)
+        img_obj = ImageObject()
+        im = img_obj.get_img_data_from_file(new_content)
+        image_processors.resize(im, self.field.resize_source)
+        image_processors.sharpen(im)
+        new_content = img_obj.get_file_for_img_data(im)
         
-        super(EnhancedImageFieldFile, self).save(name, content, save)
+        super(EnhancedImageFieldFile, self).save(name, new_content, save)
         
-        name = self.field.generate_filename(self.instance, name)
-        self.name = self.storage.save(name, content)
-        setattr(self.instance, self.field.name, self.name)
-
-        # Update the filesize cache
-        self._size = len(content)
-        self._committed = True
-
-        # Save the object because it has changed, unless save is False
-        if save:
-            self.instance.save()
+        # self.name has been re-set in the save() above
+        # use self.name to generate the thumbnail filename
         
+        # Generate thumbnails
+        if self.field.thumbnails:
+            for thumbnail_name, thumbnail_size in self.field.thumbnails.items():
+                new_content = copy.copy(content)
+                img_obj = ImageObject()
+                im = img_obj.get_img_data_from_file(new_content)
+                image_processors.resize(im, thumbnail_size)
+                new_content = img_obj.get_file_for_img_data(im)
+                path = get_thumbnail_path(self.name, thumbnail_name)
+                path_saved = self.storage.save(name, content)
+                
+                # check if path == path_saved
+                
+    def delete(self, save=True):
+        source_path = copy.copy(self.name)
+        super(EnhancedImageFieldFile, self).delete(save)
+        
+        # Delete thumbnails
+        if self.field.thumbnails:
+            for thumbnail_name, thumbnail_size in self.field.thumbnails.items():
+                path = get_thumbnail_path(source_path, thumbnail_name)
+                self.storage.delete(path)
+                
+      
 
 
 class EnhancedImageField(ImageField):

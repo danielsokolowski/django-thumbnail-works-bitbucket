@@ -1,6 +1,6 @@
 
 import StringIO
-from PIL import Image
+from PIL import Image, ImageFilter
 
 from django.core.files.base import ContentFile
 from django.core.files import File
@@ -9,12 +9,14 @@ from thumbnail_works.utils import get_width_height_from_string
 from thumbnail_works import settings
 
 
-def resize(imagefile, size):
+def resize(im, size):
+    """
+    The resize happens only if any of the following conditions is met:
     
-    # PIL_Image.open() accepts a file-like object, but it is needed
-    # to rewind it back to be able to get the data
-    imagefile.seek(0)
-    im = PIL_Image.open(imagefile)
+        - the original width is greater than the requested width
+        - the original height is greater than the requested height
+    
+    """
     
     # Requested dimensions
     width_req, height_req = get_width_height_from_string(size)
@@ -26,18 +28,6 @@ def resize(imagefile, size):
     if width_source < height_source:
         landscape_orientation = False
     
-    # Convert to RGB if necessary
-    if im.mode not in ('L', 'RGB', 'RGBA'):
-        im = im.convert('RGB')
-    
-    """
-    The resize happens only if any of the following conditions is met:
-    
-        - the original width is greater than the requested width
-        - the original height is greater than the requested height
-    
-    """
-    
     # Determine if resize is needed. (Also creates the temporary resized file)
     if width_source > width_req or height_source > height_req:
         # Do resize
@@ -45,14 +35,9 @@ def resize(imagefile, size):
         # image's aspect ratio (resize() does not).
         im.thumbnail((width_req, height_req), Image.ANTIALIAS)
         
-    
-    io = StringIO.StringIO()
-    
-    if settings.THUMBNAILS_FORMAT == 'JPEG':
-        im.save(io, 'JPEG', quality=settings.THUMBNAILS_QUALITY)
-    elif settings.THUMBNAILS_FORMAT == 'PNG':
-        im.save(io, 'PNG')
-    
-    #return ContentFile(io.getvalue())
-    return File(io)
+    return im
   
+
+def sharpen(im):
+    im = im.filter(ImageFilter.SHARPEN)
+    return im

@@ -25,6 +25,8 @@
 #  limitations under the License.
 #
 
+import os
+
 from thumbnail_works.exceptions import ImageSizeError
 
 
@@ -41,4 +43,17 @@ def get_width_height_from_string(self, size):
     except ValueError:
         raise ImageSizeError('size\'s WIDTH and HEIGHT must be integers')
     return size_x, size_y
+
+
+def get_thumbnail_path(source_path, thumbnail_name):
+    """
+    For urls and filesystem paths
+    
+    source: /media/images/photo.jpg
+    thumbnail: /media/images/photo.<thumbname>.jpg
+    """
+    root_dir = os.path.dirname(source_path)  # /media/images
+    filename = os.path.basename(source_path)
+    base_filename, ext = os.path.splitext(filename)
+    return os.path.join(root_dir, '%s.%s.%s' % (base_filename, thumbnail_name, ext))
 

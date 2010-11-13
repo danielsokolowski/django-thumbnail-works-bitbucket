@@ -64,6 +64,7 @@ class ThumbnailSpec:
         if self._options_are_valid(options):
             self.options = self._get_options(options)
         self.name = self._get_name(name)
+        self.ext = self._get_filename_extension_from_format()
         self.width, self.height = get_width_height_from_string(options['size'])
         self.url = make_thumbnail_path(source.url, self.name)
     
@@ -71,6 +72,15 @@ class ThumbnailSpec:
     
     def _get_name(self, name):
         return name.replace(' ', '_')
+    
+    def _get_filename_extension_from_format(self):
+        """Returns an extension according to the format.
+        
+        """
+        ext = self.options['format'].lower()
+        if ext == 'jpeg':
+            return 'jpg'
+        return ext
     
     def _get_options(self, options):
         """This method ensures that all the available options are set to a
@@ -108,7 +118,7 @@ class EnhancedImageFieldFile(ImageFieldFile):
           
         class MyModel(models.Model):
             photo = EnhancedImageField(
-                process_source = '512x384',
+                process_source = dict(size='512x384'),
                 thumbnails = {
                     'avatar': dict(size='80x60', sharpen=True),
                     'large': dict(size='200x150'),
@@ -156,6 +166,7 @@ class EnhancedImageFieldFile(ImageFieldFile):
                 setattr(self, thumb_name, thumb_spec)
     
     def process_image(self, content, options):
+        pass
         
     
     def save(self, name, content, save=True):
@@ -169,12 +180,10 @@ class EnhancedImageFieldFile(ImageFieldFile):
             thumb_spec = ThumbnailSpec('dummy', source_img_opts, self)
             # This also saves the source image using the THUMBNAILS_FORMAT
             processed_content = process_content_as_image(content, thumb_spec.options)
-        elif settings.THUMBNAILS_FORCE_SOURCE_FORMAT:
-            source_img_opts = dict(format=settings.THUMBNAILS_FORCE_SOURCE_FORMAT)
-            thumb_spec = ThumbnailSpec('dummy', source_img_opts, self)
-            processed_content = process_content_as_image(content, thumb_spec.options)
         else:
             processed_content = content
+        
+        # TODO: set correct extension according to the format
         
         super(EnhancedImageFieldFile, self).save(source_filename, processed_content, save)
         
@@ -186,15 +195,9 @@ class EnhancedImageFieldFile(ImageFieldFile):
         # Generate thumbnails
         if self.field.thumbnails:
             for thumb_name, thumb_options in self.field.thumbnails.items():
-                #new_content = copy.deepcopy(content)
-                print "Doing: ", thumb_name, thumb_size
-                
                 thumb_spec = ThumbnailSpec(thumb_name, thumb_options, self)
-                
-                processed_content = process_content_as_image(
-                    content, thumb_spec.options)
-                thumb_path = make_thumbnail_path(source_path, thumb_name)
-                print thumb_path
+                processed_content = process_content_as_image(content, thumb_spec.options)
+                thumb_path = make_thumbnail_path(source_path, thumb_name, force_ext=thumb_spec.ext)
                 thumb_path_saved = self.storage.save(thumb_path, processed_content)
                 
                 assert thumb_path == thumb_path_saved, 'The calculated \
@@ -266,7 +269,7 @@ class EnhancedImageField(ImageField):
             
             class MyModel(models.Model):
                 photo = EnhancedImageField(
-                    process_source = '512x384',
+                    process_source = dict(size='512x384'),
                     thumbnails = {
                         'avatar': dict(size='80x60', sharpen=True),
                         'large': dict(size='200x150'),

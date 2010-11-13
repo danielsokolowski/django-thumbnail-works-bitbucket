@@ -59,7 +59,7 @@ def get_width_height_from_string(size):
     return size_x, size_y
 
 
-def make_thumbnail_path(source_path, thumbnail_name):
+def make_thumbnail_path(source_path, thumbnail_name, force_ext=None):
     """
     THUMBNAILS_DIRNAME
     For urls and filesystem paths
@@ -70,7 +70,12 @@ def make_thumbnail_path(source_path, thumbnail_name):
     root_dir = os.path.dirname(source_path)  # /media/images
     filename = os.path.basename(source_path)
     base_filename, ext = os.path.splitext(filename)
-    return os.path.join(root_dir, '%s.%s.%s' % (base_filename, thumbnail_name, ext))
+    if force_ext:
+        ext = force_ext
+    thumb_filename = '%s.%s%s' % (base_filename, thumbnail_name, ext)
+    if settings.THUMBNAILS_DIRNAME:
+        return os.path.join(root_dir, settings.THUMBNAILS_DIRNAME, thumb_filename)
+    return os.path.join(root_dir, '%s.%s%s' % (base_filename, thumbnail_name, ext))
 
 
 def process_content_as_image(content, options):

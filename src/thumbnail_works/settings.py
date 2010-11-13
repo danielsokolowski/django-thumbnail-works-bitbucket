@@ -28,9 +28,6 @@
 from django.conf import settings
 
 
-# If THUMBNAILS_FORCE_FORMAT is set to True, then the uploaded image is 
-THUMBNAILS_FORCE_SOURCE_FORMAT = getattr(settings, 'DTW_THUMBNAILS_FORCE_SOURCE_FORMAT', None)
-
 # JPEG, PNG
 THUMBNAILS_FORMAT = getattr(settings, 'DTW_THUMBNAILS_FORMAT', 'JPEG')
 
@@ -39,5 +36,6 @@ THUMBNAILS_QUALITY = getattr(settings, 'DTW_THUMBNAILS_QUALITY', 85)
 
 
 # This is the name of the directory where the thumbnails will be stored
-THUMBNAILS_DIRNAME = getattr(settings, 'DTW_THUMBNAILS_DIRNAME', '')
+THUMBNAILS_DIRNAME = getattr(settings, 'DTW_THUMBNAILS_DIRNAME', 'thumbs')
 
+THUMBNAILS_DELAYED_GENERATION = getattr(settings, 'DTW_THUMBNAILS_DELAYED_GENERATION', True)

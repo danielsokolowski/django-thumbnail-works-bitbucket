@@ -26,13 +26,12 @@
 #
 
 import copy
-import StringIO
-from PIL import Image
+
 
 from django.db.models.fields.files import ImageField, ImageFieldFile
-from django.core.files.base import ContentFile
-from django.core.files import File
 
+
+from thumbnail_works.core import ImageObject, Thumbnail
 from thumbnail_works.exceptions import ImageSizeError
 from thumbnail_works.utils import get_width_height_from_string, get_thumbnail_path
 from thumbnail_works import settings
@@ -40,42 +39,7 @@ from thumbnail_works import image_processors
 
 
 
-class ImageObject:
-    
-    def get_img_data_from_file(self, f_obj):
-        
-        # PIL_Image.open() accepts a file-like object, but it is needed
-        # to rewind it back to be able to get the data
-        f_obj.seek(0)
-        im = Image.open(f_obj)
-        
-        # Convert to RGB if necessary
-        if im.mode not in ('L', 'RGB', 'RGBA'):
-            im = im.convert('RGB')
-        
-        return im
-    
-    def get_file_for_img_data(self, im):
-        
-        io = StringIO.StringIO()
-    
-        if settings.THUMBNAILS_FORMAT == 'JPEG':
-            im.save(io, 'JPEG', quality=settings.THUMBNAILS_QUALITY)
-        elif settings.THUMBNAILS_FORMAT == 'PNG':
-            im.save(io, 'PNG')
-        
-        return ContentFile(io.getvalue())
 
-    
-class Thumbnail:
-    
-    def __init__(self, name, size, source):
-        self.name = self._get_name(name)    # the thumbnail name as set in the dictionary
-        self.width, self.height = get_width_height_from_string(size)
-        self.url = get_thumbnail_path(source.url, self.name)
-    
-    def _get_name(self, name):
-        return name.replace(' ', '_')
 
         
 class EnhancedImageFieldFile(ImageFieldFile):

@@ -36,6 +36,8 @@ long_description = """
 django-thumbnail-works provides an enhanced ImageField that generates and
 manages thumbnails of the uploaded image.
 
+THIS PROJECT IS ALPHA SOFTWARE - ONLY FOR TESTING
+
 More information
 ----------------
 More information about the installation, configuration and usage of this app

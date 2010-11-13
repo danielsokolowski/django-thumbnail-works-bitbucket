@@ -36,7 +36,6 @@ except ImportError:
     import Image
 
 from django.core.files.base import ContentFile
-from django.core.files import File
 
 from thumbnail_works.exceptions import ImageSizeError
 from thumbnail_works import image_processors

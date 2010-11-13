@@ -25,17 +25,13 @@
 #  limitations under the License.
 #
 
-import copy
-
-
 from django.db.models.fields.files import ImageField, ImageFieldFile
 from django.core.files.base import ContentFile
 
-from thumbnail_works.exceptions import ImageSizeError, ThumbnailOptionError
+from thumbnail_works.exceptions import ThumbnailOptionError
 from thumbnail_works.utils import get_width_height_from_string, \
     make_thumbnail_path, process_content_as_image
 from thumbnail_works import settings
-from thumbnail_works import image_processors
 
 
 

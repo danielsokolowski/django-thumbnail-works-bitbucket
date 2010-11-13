@@ -31,7 +31,7 @@ import copy
 from django.db.models.fields.files import ImageField, ImageFieldFile
 
 
-from thumbnail_works.exceptions import ImageSizeError
+from thumbnail_works.exceptions import ImageSizeError, ThumbnailOptionError
 from thumbnail_works.utils import get_width_height_from_string, \
     make_thumbnail_path, process_content_as_image
 from thumbnail_works import settings
@@ -42,13 +42,28 @@ from thumbnail_works import image_processors
 
 class Thumbnail:
     
-    def __init__(self, name, size, source):
+    MANDATORY_OPTIONS = ['size']
+    VALID_OPTIONS = ['size', 'sharpen', 'detail', 'upscale']
+    
+    def __init__(self, name, options, source):
         self.name = self._get_name(name)    # the thumbnail name as set in the dictionary
-        self.width, self.height = get_width_height_from_string(size)
+        if self._options_are_valid(options):
+            self.options = options
+        
+        self.size = options['size']
+        self.width, self.height = get_width_height_from_string(self.size)
         self.url = make_thumbnail_path(source.url, self.name)
     
     def _get_name(self, name):
         return name.replace(' ', '_')
+    
+    def _options_are_valid(self, options):
+        if not options.has_key('size'):
+            raise ThumbnailOptionError('Thumbnail is missing the mandatory `size` option')
+        for option in options.keys():
+            if option not in self.VALID_OPTIONS:
+                raise ThumbnailOptionError('Invalid thumbnail option `%s`' % option)
+        return True
 
 
         
@@ -102,7 +117,7 @@ class EnhancedImageFieldFile(ImageFieldFile):
           storage or the file has been deleted from the database and therefore
           deleted from the filesystem.
         
-        If the sourc eimage has been saved and thumbnails have been specified,
+        If the source image has been saved and thumbnails have been specified,
         instanciate the latter using the ``Thumbnail`` class and add them as
         attributes to the ``EnhancedImageFieldFile`` object.
         
@@ -112,8 +127,10 @@ class EnhancedImageFieldFile(ImageFieldFile):
         # Set thumbnail objects as attributes only if thumbnail definitions
         # exist and the source image has been saved.
         if self._committed and self.field.thumbnails:
-            for thumb_name, thumb_size in self.field.thumbnails.items():
-                thumb_obj = Thumbnail(thumb_name, thumb_size, self)
+            for thumb_name, thumb_options in self.field.thumbnails.items():
+                
+                thumb_obj = Thumbnail(thumb_name, thumb_options, self)
+                thumb_size = thumb_options['size']
                 setattr(self, thumb_name, thumb_obj)
     
     def save(self, name, content, save=True):

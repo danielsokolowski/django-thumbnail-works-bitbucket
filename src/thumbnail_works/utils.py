@@ -26,8 +26,14 @@
 #
 
 import os
-import StringIO
-from PIL import Image
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
+try:
+    from PIL import Image
+except ImportError:
+    import Image
 
 from django.core.files.base import ContentFile
 from django.core.files import File

@@ -25,7 +25,11 @@
 #  limitations under the License.
 #
 
-from PIL import Image, ImageFilter
+try:
+    from PIL import Image, ImageFilter
+except ImportError:
+    import Image
+    import ImageFilter
 
 
 def resize(im, size, upscale):

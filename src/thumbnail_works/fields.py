@@ -81,6 +81,9 @@ class ThumbnailSpec:
             other storages a value of None is set.
         ``path_relative``
             The path to the thumbnail relative to MEDIA_ROOT.
+        ``options``
+            The thumbnail options as specified in ``EnhancedImageField.thumbnails``
+            and after filling any missing options with the defaults.
         
         """
         if self._options_are_valid(options):
@@ -180,8 +183,13 @@ class EnhancedImageFieldFile(ImageFieldFile):
         """Constructor.
         
         If the source image has been saved and thumbnails have been specified,
-        instanciate the latter using the ``ThumbnailSpec`` class and add them
-        as attributes to the ``EnhancedImageFieldFile`` object.
+        instanciate the latter using the ``ThumbnailSpec`` class. If the
+        thumbnail actually exists on the storage, then add them as attributes
+        to the ``EnhancedImageFieldFile`` object.
+        
+        If a thumbnail does not exist on the storage, it will be generated
+        and set as an ``EnhancedImageFieldFile`` instance attribute whenever
+        it is accessed for the first time.
         
         """
         super(EnhancedImageFieldFile, self).__init__(*args, **kwargs)
@@ -204,11 +212,11 @@ class EnhancedImageFieldFile(ImageFieldFile):
         ``content``: Image data.
         
         If the ``content`` argument is None, then the image data is read
-        from the storage. On IOError returns None
+        from the storage. If IOError occurs while trying to read the
+        image data, returns None.
         
         """
         if content is None:
-            # Get the content
             try:
                 content = ContentFile(self.storage.open(self.name).read())
             except IOError:
@@ -223,26 +231,36 @@ class EnhancedImageFieldFile(ImageFieldFile):
         thumbnail path `%s` and the actual path where the thumbnail \
         was saved `%s` differ.'
         
-        print 'generated thumbnail: %s' % path
-        
         return thumb_spec
     
     def __getattr__(self, attrName):
-        """
-        http://western-skies.blogspot.com/2008/02/complete-example-of-getattr-in-python.html
+        """Retrieves an ``EnhancedImageFieldFile`` instance attribute.
+        
+        If a thumbnail attribute is requested, but it has not been set as
+        an ``EnhancedImageFieldFile`` instance attribute, then:
+        
+        1. Generate the thumbnail
+        2. Set it as an ``EnhancedImageFieldFile`` instance attribute
+        
+        Developer Notes
+        ---------------
+        Here we use the ``EnhancedImageFieldFile`` instance's __dict__ in
+        order to check or set the instance's attributes so as to avoid
+        triggering a recursive call to this function.
+        
+        A good write-up on this exists at:  http://bit.ly/c2JL8H
+        
         """
         if not self.__dict__.has_key(attrName):
             # Proceed in thumbnail generation only if a thumbnail attribute
             # is requested
             if self.field.thumbnails.has_key(attrName):
-                print 'requested thumbnail: %s' % attrName
                 # Generate thumbnail and set the thumbnail specification as
                 # an attribute to the ``EnhancedImageFieldFile``.
                 thumb_options = self.field.thumbnails[attrName]
                 thumb_spec = self.generate_thumbnail(attrName, thumb_options)
                 self.__dict__[attrName] = thumb_spec
         return self.__dict__[attrName]
-        
     
     def save(self, name, content, save=True):
         """Saves the source image and generates thumbnails.
@@ -269,8 +287,9 @@ class EnhancedImageFieldFile(ImageFieldFile):
             source_img_opts = self.field.process_source
             thumb_spec = ThumbnailSpec('dummy', source_img_opts, self)
             processed_content = process_content_as_image(content, thumb_spec.options)
+            # The following sets the correct filename extension according
+            # to the image format. 
             name = '%s%s' % (name.rsplit('.', 1)[0], thumb_spec.ext)
-            print 'Resized original image'
         else:
             processed_content = content
         

@@ -107,7 +107,7 @@ class EnhancedImageFieldFile(ImageFieldFile):
         super(EnhancedImageFieldFile, self).__init__(*args, **kwargs)
         
         # Set thumbnail objects as attributes
-        if self.field.thumbnails:
+        if self._committed and self.field.thumbnails:
             for thumb_name, thumb_size in self.field.thumbnails.items():
                 thumb_obj = Thumbnail(thumb_name, thumb_size, self)
                 setattr(self, thumb_name, thumb_obj)
@@ -121,13 +121,6 @@ class EnhancedImageFieldFile(ImageFieldFile):
         
         # Before saving, resize the source image if a size has been set
         #content = copy.copy(content)
-        """
-        img_obj = ImageObject()
-        im = img_obj.get_img_data_from_file(content)
-        im = image_processors.resize(im, self.field.resize_source)
-        im = image_processors.sharpen(im)
-        resized_content = img_obj.get_file_for_img_data(im)
-        """
         processed_content = process_content_as_image(
             content, resize_to=self.field.resize_source, sharpen=True)
         
@@ -135,6 +128,7 @@ class EnhancedImageFieldFile(ImageFieldFile):
         
         # self.name has been re-set in the save() above
         # use self.name to generate the thumbnail filename
+        print 'self.name:', self.name
         
         # Generate thumbnails
         if self.field.thumbnails:

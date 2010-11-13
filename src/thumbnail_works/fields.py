@@ -33,7 +33,7 @@ from django.db.models.fields.files import ImageField, ImageFieldFile
 
 from thumbnail_works.exceptions import ImageSizeError
 from thumbnail_works.utils import get_width_height_from_string, \
-    get_thumbnail_path, process_content_as_image
+    make_thumbnail_path, process_content_as_image
 from thumbnail_works import settings
 from thumbnail_works import image_processors
 
@@ -45,7 +45,7 @@ class Thumbnail:
     def __init__(self, name, size, source):
         self.name = self._get_name(name)    # the thumbnail name as set in the dictionary
         self.width, self.height = get_width_height_from_string(size)
-        self.url = get_thumbnail_path(source.url, self.name)
+        self.url = make_thumbnail_path(source.url, self.name)
     
     def _get_name(self, name):
         return name.replace(' ', '_')
@@ -70,7 +70,10 @@ class EnhancedImageFieldFile(ImageFieldFile):
         class MyModel(models.Model):
             photo = EnhancedImageField(
                 resize_source = '512x384',
-                thumbnails = {'avatar': '80x60', 'large': '200x150',}
+                thumbnails = {
+                    'avatar': dict(size='80x60', sharpen=True),
+                    'large': dict(size='200x150'),
+                }
             )
     
     Thumbnail attributes can be accessed as follows::
@@ -114,22 +117,26 @@ class EnhancedImageFieldFile(ImageFieldFile):
                 setattr(self, thumb_name, thumb_obj)
     
     def save(self, name, content, save=True):
-        """
-        name: is the path on the filesystem of the original image
-        """
-        print name
-        print dir(content)
+        source_filename = name
+        print source_filename
         
-        # Before saving, resize the source image if a size has been set
-        #content = copy.copy(content)
-        processed_content = process_content_as_image(
-            content, resize_to=self.field.resize_source, sharpen=True)
-        
-        super(EnhancedImageFieldFile, self).save(name, processed_content, save)
+        # Before saving, resize the source image if the resize_source has been
+        # set.
+        if self.field.resize_source is not None:
+            # This also saves the source image using the THUMBNAILS_FORMAT 
+            processed_content = process_content_as_image(
+                content, resize_to=self.field.resize_source, sharpen=True)
+        elif settings.THUMBNAILS_FORCE_SOURCE_FORMAT:
+            processed_content = process_content_as_image(
+                content, sharpen=True, format=settings.THUMBNAILS_FORCE_SOURCE_FORMAT)
+        else:
+            processed_content = content
+        super(EnhancedImageFieldFile, self).save(source_filename, processed_content, save)
         
         # self.name has been re-set in the save() above
         # use self.name to generate the thumbnail filename
-        print 'self.name:', self.name
+        source_path = self.name
+        print 'self.name:', source_path
         
         # Generate thumbnails
         if self.field.thumbnails:
@@ -144,11 +151,13 @@ class EnhancedImageFieldFile(ImageFieldFile):
                 """
                 processed_content = process_content_as_image(
                     content, resize_to=thumb_size, sharpen=True)
-                path = get_thumbnail_path(name, thumb_name)
-                print path
-                path_saved = self.storage.save(path, processed_content)
+                thumb_path = make_thumbnail_path(source_path, thumb_name)
+                print thumb_path
+                thumb_path_saved = self.storage.save(thumb_path, processed_content)
                 
-                # check if path == path_saved
+                assert thumb_path == thumb_path_saved, 'Calculated thumbnail \
+                path `%s` and the actual path where the thumbnail was saved \
+                `%s` differ.'
     
                 
     def delete(self, save=True):
@@ -159,7 +168,7 @@ class EnhancedImageFieldFile(ImageFieldFile):
         # Delete thumbnails
         if self.field.thumbnails:
             for thumbnail_name, thumbnail_size in self.field.thumbnails.items():
-                path = get_thumbnail_path(source_path, thumbnail_name)
+                path = make_thumbnail_path(source_path, thumbnail_name)
                 self.storage.delete(path)
                 
       """
@@ -184,7 +193,38 @@ class EnhancedImageField(ImageField):
             A dictionary of thumbnail definitions. The format of each
             thumbnail definition is::
 
-                <thumbnail_name> : <size>
+                <thumbnail_name> : <thumbnail_options>
+            
+            Thumbnail options is a dict of options that will be used during
+            the thumbnail generation. Supported options are:
+            
+            ``size``
+                A string of the WIDTHxHEIGHT which represents the size of
+                the thumbnail.
+            ``sharpen``
+                Boolean option. If set, the ImageFilter.SHARPEN filter will
+                be applied to the thumbnail.
+            ``detail``
+                Boolean option. If set, the ImageFilter.DETAIL filter will
+                be applied to the thumbnail.
+            ``upscale``
+                Boolean option. By default, image resizing occurs only if
+                any of the image dimensions is higher that the dimension
+                indicated by the ``size`` option. If this is enabled, the
+                resizing occurs even if the former condition is not met.
+
+        Example::
+        
+            from thumbnail_works.fields import EnhancedImageField
+            
+            class MyModel(models.Model):
+                photo = EnhancedImageField(
+                    resize_source = '512x384',
+                    thumbnails = {
+                        'avatar': dict(size='80x60', sharpen=True),
+                        'large': dict(size='200x150'),
+                    }
+                )
         
         """
         self.resize_source = resize_source

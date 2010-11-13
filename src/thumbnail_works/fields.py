@@ -179,9 +179,9 @@ class EnhancedImageFieldFile(ImageFieldFile):
         """Constructor.
         
         If the source image has been saved and thumbnails have been specified,
-        instanciate the latter using the ``ThumbnailSpec`` class. If the
-        thumbnail actually exists on the storage, then add them as attributes
-        to the ``EnhancedImageFieldFile`` object.
+        instanciate each thumbnail using ``ThumbnailSpec`` class, if the
+        thumbnail exists on the storage. Then add it as attribute to the
+        ``EnhancedImageFieldFile`` object.
         
         If a thumbnail does not exist on the storage, it will be generated
         and set as an ``EnhancedImageFieldFile`` instance attribute whenever
@@ -229,8 +229,8 @@ class EnhancedImageFieldFile(ImageFieldFile):
         
         return thumb_spec
     
-    def __getattr__(self, attrName):
-        """Retrieves an ``EnhancedImageFieldFile`` instance attribute.
+    def __getattr__(self, attribute):
+        """Retrieves any ``EnhancedImageFieldFile`` instance attribute.
         
         If a thumbnail attribute is requested, but it has not been set as
         an ``EnhancedImageFieldFile`` instance attribute, then:
@@ -247,16 +247,16 @@ class EnhancedImageFieldFile(ImageFieldFile):
         A good write-up on this exists at:  http://bit.ly/c2JL8H
         
         """
-        if not self.__dict__.has_key(attrName):
-            # Proceed in thumbnail generation only if a thumbnail attribute
+        if not self.__dict__.has_key(attribute):
+            # Proceed to thumbnail generation only if a thumbnail attribute
             # is requested
-            if self.field.thumbnails.has_key(attrName):
+            if self.field.thumbnails.has_key(attribute):
                 # Generate thumbnail and set the thumbnail specification as
                 # an attribute to the ``EnhancedImageFieldFile``.
-                thumb_options = self.field.thumbnails[attrName]
-                thumb_spec = self.generate_thumbnail(attrName, thumb_options)
-                self.__dict__[attrName] = thumb_spec
-        return self.__dict__[attrName]
+                thumb_options = self.field.thumbnails[attribute]
+                thumb_spec = self.generate_thumbnail(attribute, thumb_options)
+                self.__dict__[attribute] = thumb_spec
+        return self.__dict__[attribute]
     
     def save(self, name, content, save=True):
         """Saves the source image and generates thumbnails.

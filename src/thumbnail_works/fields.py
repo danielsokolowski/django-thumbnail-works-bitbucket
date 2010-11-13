@@ -64,8 +64,8 @@ class ImageObject:
         elif settings.THUMBNAILS_FORMAT == 'PNG':
             im.save(io, 'PNG')
         
-        #return ContentFile(io.getvalue())
-        return File(io)
+        return ContentFile(io.getvalue())
+        #return File(io)
     
     
 class Thumbnail:
@@ -95,19 +95,22 @@ class EnhancedImageFieldFile(ImageFieldFile):
         name: is the path on the filesystem of the original image
         """
         
-        # Before saving, resize the source image if a size has been set
-        new_content = copy.copy(content)
-        img_obj = ImageObject()
-        im = img_obj.get_img_data_from_file(new_content)
-        image_processors.resize(im, self.field.resize_source)
-        image_processors.sharpen(im)
-        new_content = img_obj.get_file_for_img_data(im)
         
-        super(EnhancedImageFieldFile, self).save(name, new_content, save)
+        # Before saving, resize the source image if a size has been set
+        #content = copy.copy(content)
+        img_obj = ImageObject()
+        im = img_obj.get_img_data_from_file(content)
+        im = image_processors.resize(im, self.field.resize_source)
+        im = image_processors.sharpen(im)
+        content = img_obj.get_file_for_img_data(im)
+        
+        
+        super(EnhancedImageFieldFile, self).save(name, content, save)
         
         # self.name has been re-set in the save() above
         # use self.name to generate the thumbnail filename
         
+        """
         # Generate thumbnails
         if self.field.thumbnails:
             for thumbnail_name, thumbnail_size in self.field.thumbnails.items():
@@ -120,18 +123,20 @@ class EnhancedImageFieldFile(ImageFieldFile):
                 path_saved = self.storage.save(name, content)
                 
                 # check if path == path_saved
+         """
                 
     def delete(self, save=True):
         source_path = copy.copy(self.name)
         super(EnhancedImageFieldFile, self).delete(save)
         
+        """
         # Delete thumbnails
         if self.field.thumbnails:
             for thumbnail_name, thumbnail_size in self.field.thumbnails.items():
                 path = get_thumbnail_path(source_path, thumbnail_name)
                 self.storage.delete(path)
                 
-      
+      """
 
 
 class EnhancedImageField(ImageField):

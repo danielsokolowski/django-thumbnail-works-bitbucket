@@ -30,7 +30,7 @@ import os
 from thumbnail_works.exceptions import ImageSizeError
 
 
-def get_width_height_from_string(self, size):
+def get_width_height_from_string(size):
     try:
         bits = size.split('x', 1)
     except AttributeError:

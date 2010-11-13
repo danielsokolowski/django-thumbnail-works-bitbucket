@@ -165,8 +165,37 @@ class EnhancedImageFieldFile(ImageFieldFile):
                 thumb_spec = ThumbnailSpec(thumb_name, thumb_options, self)
                 setattr(self, thumb_name, thumb_spec)
     
-    def process_image(self, content, options):
-        pass
+    def _generate_thumbnail(self, content, name, options, source):
+        """
+        content: content object
+        name: the name of the thumbnail as defined in the self.field.thumbnails
+        options: the thumbnail options as defined in the self.field.thumbnails
+        source: an instance of the EnhancedImageFieldFile
+        """
+        thumb_spec = ThumbnailSpec(name, options, source)
+        processed_content = process_content_as_image(content, thumb_spec.options)
+        path = make_thumbnail_path(source.path, name, force_ext=thumb_spec.ext)
+        path_saved = self.storage.save(path, processed_content)
+        
+        assert path == path_saved, 'The calculated \
+        thumbnail path `%s` and the actual path where the thumbnail \
+        was saved `%s` differ.'
+    
+    def __LALAgetattr__(self, attrName):
+        if not self.__dict__.has_key(attrName):
+            if self.field.thumbnails.has_key(attrName):
+                thumb_options = self.field.thumbnails[attrName]
+                thumb_spec = ThumbnailSpec(attrName, thumb_options, self)
+                processed_content = process_content_as_image(content, thumb_spec.options)
+                thumb_path = make_thumbnail_path(source_path, thumb_name, force_ext=thumb_spec.ext)
+                thumb_path_saved = self.storage.save(thumb_path, processed_content)
+                
+                assert thumb_path == thumb_path_saved, 'The calculated \
+                thumbnail path `%s` and the actual path where the thumbnail \
+                was saved `%s` differ.'
+                
+                self.__dict__[attrName] = thumb_spec
+        return self.__dict__[attrName]
         
     
     def save(self, name, content, save=True):
@@ -193,6 +222,8 @@ class EnhancedImageFieldFile(ImageFieldFile):
         print 'self.name:', source_path
         
         # Generate thumbnails
+        # Usee also:  if self._committed and 
+        
         if self.field.thumbnails:
             for thumb_name, thumb_options in self.field.thumbnails.items():
                 thumb_spec = ThumbnailSpec(thumb_name, thumb_options, self)

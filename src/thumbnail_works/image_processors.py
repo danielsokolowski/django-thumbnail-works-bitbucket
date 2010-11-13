@@ -60,3 +60,8 @@ def resize(im, size):
 def sharpen(im):
     im = im.filter(ImageFilter.SHARPEN)
     return im
+
+def detail(im):
+    im = im.filter(ImageFilter.DETAIL)
+    return im
+

@@ -59,11 +59,12 @@ def get_width_height_from_string(size):
     return size_x, size_y
 
 
-def get_thumbnail_path(source_path, thumbnail_name):
+def make_thumbnail_path(source_path, thumbnail_name):
     """
+    THUMBNAILS_DIRNAME
     For urls and filesystem paths
     
-    source: /media/images/photo.jpg
+    source_path: /media/images/photo.jpg
     thumbnail: /media/images/photo.<thumbname>.jpg
     """
     root_dir = os.path.dirname(source_path)  # /media/images
@@ -72,7 +73,8 @@ def get_thumbnail_path(source_path, thumbnail_name):
     return os.path.join(root_dir, '%s.%s.%s' % (base_filename, thumbnail_name, ext))
 
 
-def process_content_as_image(content, resize_to=None, sharpen=False):
+def process_content_as_image(content, size=None, sharpen=False,
+        format=settings.THUMBNAILS_FORMAT):
     
     # Image.open() accepts a file-like object, but it is needed
     # to rewind it back to be able to get the data,
@@ -84,17 +86,21 @@ def process_content_as_image(content, resize_to=None, sharpen=False):
         im = im.convert('RGB')
     
     # Process
-    if resize_to is not None:
-        im = image_processors.resize(im, get_width_height_from_string(resize_to))
+    if size is not None:
+        new_size = get_width_height_from_string(size)
+        im = image_processors.resize(im, new_size)
     if sharpen:
         im = image_processors.sharpen(im)
     
-    io = StringIO.StringIO()
+    # Save image data
+    buffer = StringIO.StringIO()
     
-    if settings.THUMBNAILS_FORMAT == 'JPEG':
-        im.save(io, 'JPEG', quality=settings.THUMBNAILS_QUALITY)
-    elif settings.THUMBNAILS_FORMAT == 'PNG':
-        im.save(io, 'PNG')
+    if format == 'JPEG':
+        im.save(buffer, 'JPEG', quality=settings.THUMBNAILS_QUALITY)
+    elif format == 'PNG':
+        im.save(buffer, 'PNG')
     
-    return ContentFile(io.getvalue())
+    data = buffer.getvalue()
+    
+    return ContentFile(data)
 

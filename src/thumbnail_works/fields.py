@@ -43,15 +43,23 @@ from thumbnail_works import image_processors
 class Thumbnail:
     
     MANDATORY_OPTIONS = ['size']
-    VALID_OPTIONS = ['size', 'sharpen', 'detail', 'upscale']
+    DEFAULT_OPTIONS = {
+        'size': None,
+        'sharpen': False,
+        'detail': False,
+        'upscale': False,
+        }
     
     def __init__(self, name, options, source):
-        self.name = self._get_name(name)    # the thumbnail name as set in the dictionary
+        """
+        name: the thumbnail name as set in the 'thumbnails' dictionary
+        options: the thumbnail options as set in the 'thumbnails' dictionary
+
+        """
         if self._options_are_valid(options):
-            self.options = options
-        
-        self.size = options['size'] # size in the formn WIDTHxHEIGHT
-        self.width, self.height = get_width_height_from_string(self.size)
+            self.options = self._get_options(options)
+        self.name = self._get_name(name)
+        self.width, self.height = get_width_height_from_string(options['size'])
         self.url = make_thumbnail_path(source.url, self.name)
     
     # Private API
@@ -59,11 +67,20 @@ class Thumbnail:
     def _get_name(self, name):
         return name.replace(' ', '_')
     
+    def _get_options(self, options):
+        """This method ensures that all the available options are set to a
+        value.
+        
+        """
+        thumb_options = self.DEFAULT_OPTIONS.copy()
+        thumb_options.update(options)
+        return thumb_options
+    
     def _options_are_valid(self, options):
         if not options.has_key('size'):
             raise ThumbnailOptionError('Thumbnail is missing the mandatory `size` option')
         for option in options.keys():
-            if option not in self.VALID_OPTIONS:
+            if option not in self.DEFAULT_OPTIONS.keys():
                 raise ThumbnailOptionError('Invalid thumbnail option `%s`' % option)
         return True
 
@@ -160,21 +177,16 @@ class EnhancedImageFieldFile(ImageFieldFile):
             for thumb_name, thumb_size in self.field.thumbnails.items():
                 #new_content = copy.deepcopy(content)
                 print "Doing: ", thumb_name, thumb_size
-                """
-                img_obj = ImageObject()
-                im = img_obj.get_img_data_from_file(content)
-                image_processors.resize(im, thumbnail_size)
-                thumbnail_content = img_obj.get_file_for_img_data(im)
-                """
+
                 processed_content = process_content_as_image(
                     content, resize_to=thumb_size, sharpen=True)
                 thumb_path = make_thumbnail_path(source_path, thumb_name)
                 print thumb_path
                 thumb_path_saved = self.storage.save(thumb_path, processed_content)
                 
-                assert thumb_path == thumb_path_saved, 'Calculated thumbnail \
-                path `%s` and the actual path where the thumbnail was saved \
-                `%s` differ.'
+                assert thumb_path == thumb_path_saved, 'The calculated \
+                thumbnail path `%s` and the actual path where the thumbnail \
+                was saved `%s` differ.'
     
                 
     def delete(self, save=True):
@@ -203,9 +215,11 @@ class EnhancedImageField(ImageField):
         Accepts regular ImageField keyword arguments and also:
         
         ``resize_source``
-            A string of the WIDTHxHEIGHT which represents the size to which
-            the uploaded image will be resized before saved to the storage.
-            If not set, the uploaded image is not resized.
+            A dictionary of thumbnail options as described below. If this is
+            set, these options will be used for source image resize.
+            Contrariwise, if this is not set, the uploaded image is saved in
+            its original form, unless THUMBNAILS_FORCE_SOURCE_FORMAT is set,
+            in which case the source image is saved in the specified format. 
         ``thumbnails``
             A dictionary of thumbnail definitions. The format of each
             thumbnail definition is::

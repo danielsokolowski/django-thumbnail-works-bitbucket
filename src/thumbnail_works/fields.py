@@ -119,7 +119,7 @@ class ThumbnailSpec:
         return True
 
 
-        
+
 class EnhancedImageFieldFile(ImageFieldFile):
     """Enhanced version of the default ImageFieldFile.
     

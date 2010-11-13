@@ -114,7 +114,7 @@ def process_content_as_image(content, options):
     
     # Save image data
     format = options['format']
-    buffer = StringIO.StringIO()
+    buffer = StringIO()
 
     if format == 'JPEG':
         im.save(buffer, format, quality=settings.THUMBNAILS_QUALITY)

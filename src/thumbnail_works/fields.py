@@ -99,14 +99,15 @@ class EnhancedImageFieldFile(ImageFieldFile):
           storage or the file has been deleted from the database and therefore
           deleted from the filesystem.
         
-        If thumbnails have been specified, instanciate them using the
-        ``Thumbnail`` class and add them as attributes to the
-        ``EnhancedImageFieldFile`` object.
+        If the sourc eimage has been saved and thumbnails have been specified,
+        instanciate the latter using the ``Thumbnail`` class and add them as
+        attributes to the ``EnhancedImageFieldFile`` object.
         
         """
         super(EnhancedImageFieldFile, self).__init__(*args, **kwargs)
         
-        # Set thumbnail objects as attributes
+        # Set thumbnail objects as attributes only if thumbnail definitions
+        # exist and the source image has been saved.
         if self._committed and self.field.thumbnails:
             for thumb_name, thumb_size in self.field.thumbnails.items():
                 thumb_obj = Thumbnail(thumb_name, thumb_size, self)

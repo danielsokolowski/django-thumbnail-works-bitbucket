@@ -31,6 +31,13 @@ from thumbnail_works.exceptions import ImageSizeError
 
 
 def get_width_height_from_string(size):
+    """Returns a (WIDTH, HEIGHT) tuple.
+    
+    Accepts a string in the form WIDTHxHEIGHT
+    
+    Raises ImageSizeError when on invalid image size.  
+    
+    """
     try:
         bits = size.split('x', 1)
     except AttributeError:

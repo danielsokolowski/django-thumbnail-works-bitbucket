@@ -31,6 +31,9 @@ from django.conf import settings
 # JPEG, PNG
 THUMBNAILS_FORMAT = getattr(settings, 'DTW_THUMBNAILS_FORMAT', 'JPEG')
 
+# If THUMBNAILS_FORCE_FORMAT is set to True, then the uploaded image is 
+#THUMBNAILS_FORCE_SOURCE_FORMAT
+
 # For JPEG format only
 THUMBNAILS_QUALITY = getattr(settings, 'DTW_THUMBNAILS_QUALITY', 85)
 

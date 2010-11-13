@@ -26,48 +26,20 @@
 #
 
 try:
-    from PIL import Image, ImageFilter
+    from PIL import ImageFilter
 except ImportError:
-    import Image
     import ImageFilter
+
+from cropresize import crop_resize
+
 
 
 def resize(im, size, upscale):
-    """
-    The resize happens only if any of the following conditions is met:
-    
-        - the original width is greater than the requested width
-        - the original height is greater than the requested height
-    
-    """
-    
-    # Requested dimensions
-    width_req, height_req = size
-    # Source image dimensions
-    width_source, height_source = im.size
-    
-    # Determine orientation
-    landscape_orientation = True
-    if width_source < height_source:
-        landscape_orientation = False
-    
-    #TODO: check the upscale
-    
-    # Determine if resize is needed. (Also creates the temporary resized file)
-    if width_source > width_req or height_source > height_req:
-        # Do resize
-        # the thumbnail() method is used for resizing as it maintains the original
-        # image's aspect ratio (resize() does not).
-        im.thumbnail((width_req, height_req), Image.ANTIALIAS)
-        
-    return im
-  
+    return crop_resize(im, size, exact_size=upscale)
 
 def sharpen(im):
-    im = im.filter(ImageFilter.SHARPEN)
-    return im
+    return im.filter(ImageFilter.SHARPEN)
 
 def detail(im):
-    im = im.filter(ImageFilter.DETAIL)
-    return im
+    return im.filter(ImageFilter.DETAIL)
 

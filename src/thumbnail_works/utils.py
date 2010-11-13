@@ -73,13 +73,7 @@ def make_thumbnail_path(source_path, thumbnail_name):
     return os.path.join(root_dir, '%s.%s.%s' % (base_filename, thumbnail_name, ext))
 
 
-def process_content_as_image(content, options=None, format=None):
-    
-    if options is None and format is None:
-        return content
-    elif format is None:
-        # Use the default format
-        format = settings.THUMBNAILS_FORMAT
+def process_content_as_image(content, options):
     
     # Image.open() accepts a file-like object, but it is needed
     # to rewind it back to be able to get the data,
@@ -91,28 +85,28 @@ def process_content_as_image(content, options=None, format=None):
         im = im.convert('RGB')
     
     # Process
-    if options:
-        size = options['size']
-        upscale = options['upscale']
-        if size is not None:
-            new_size = get_width_height_from_string(size)
-            im = image_processors.resize(im, new_size, upscale)
-        
-        sharpen = options['sharpen']
-        if sharpen:
-            im = image_processors.sharpen(im)
-        
-        detail = options['detail']
-        if detail:
-            im = image_processors.detail(im)
+    size = options['size']
+    upscale = options['upscale']
+    if size is not None:
+        new_size = get_width_height_from_string(size)
+        im = image_processors.resize(im, new_size, upscale)
+    
+    sharpen = options['sharpen']
+    if sharpen:
+        im = image_processors.sharpen(im)
+    
+    detail = options['detail']
+    if detail:
+        im = image_processors.detail(im)
     
     # Save image data
+    format = options['format']
     buffer = StringIO.StringIO()
-    
+
     if format == 'JPEG':
-        im.save(buffer, 'JPEG', quality=settings.THUMBNAILS_QUALITY)
-    elif format == 'PNG':
-        im.save(buffer, 'PNG')
+        im.save(buffer, format, quality=settings.THUMBNAILS_QUALITY)
+    else:
+        im.save(buffer, format)
     
     data = buffer.getvalue()
     

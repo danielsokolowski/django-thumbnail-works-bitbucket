@@ -51,6 +51,7 @@ class ThumbnailSpec:
         'sharpen': False,
         'detail': False,
         'upscale': False,
+        'format': settings.THUMBNAILS_FORMAT,
         }
     
     def __init__(self, name, options, source):
@@ -107,7 +108,7 @@ class EnhancedImageFieldFile(ImageFieldFile):
           
         class MyModel(models.Model):
             photo = EnhancedImageField(
-                resize_source = '512x384',
+                process_source = '512x384',
                 thumbnails = {
                     'avatar': dict(size='80x60', sharpen=True),
                     'large': dict(size='200x150'),
@@ -154,24 +155,27 @@ class EnhancedImageFieldFile(ImageFieldFile):
                 thumb_spec = ThumbnailSpec(thumb_name, thumb_options, self)
                 setattr(self, thumb_name, thumb_spec)
     
-    #def process_image(self, content, options):
+    def process_image(self, content, options):
+        
     
     def save(self, name, content, save=True):
         source_filename = name
         print source_filename
         
-        # Before saving, resize the source image if the resize_source has been
+        # Before saving, resize the source image if the process_source has been
         # set.
-        if self.field.resize_source is not None:
-            thumb_spec = ThumbnailSpec('dummy', self.field.resize_source, self)
+        if self.field.process_source is not None:
+            source_img_opts = self.field.process_source
+            thumb_spec = ThumbnailSpec('dummy', source_img_opts, self)
             # This also saves the source image using the THUMBNAILS_FORMAT
-            processed_content = process_content_as_image(
-                content, options=thumb_spec.options)
+            processed_content = process_content_as_image(content, thumb_spec.options)
         elif settings.THUMBNAILS_FORCE_SOURCE_FORMAT:
-            thumb_spec = ThumbnailSpec('dummy', {}, self)
-            processed_content = process_content_as_image(content, thumb_spec.options, format=settings.THUMBNAILS_FORCE_SOURCE_FORMAT)
+            source_img_opts = dict(format=settings.THUMBNAILS_FORCE_SOURCE_FORMAT)
+            thumb_spec = ThumbnailSpec('dummy', source_img_opts, self)
+            processed_content = process_content_as_image(content, thumb_spec.options)
         else:
             processed_content = content
+        
         super(EnhancedImageFieldFile, self).save(source_filename, processed_content, save)
         
         # self.name has been re-set in the save() above
@@ -218,12 +222,12 @@ class EnhancedImageField(ImageField):
     """
     attr_class = EnhancedImageFieldFile
     
-    def __init__(self, resize_source=None, thumbnails={}, **kwargs):
+    def __init__(self, process_source=None, thumbnails={}, **kwargs):
         """Constructor
         
         Accepts regular ImageField keyword arguments and also:
         
-        ``resize_source``
+        ``process_source``
             A dictionary of thumbnail options as described below. If this is
             set, these options will be used for source image resize.
             Contrariwise, if this is not set, the uploaded image is saved in
@@ -252,6 +256,9 @@ class EnhancedImageField(ImageField):
                 any of the image dimensions is higher that the dimension
                 indicated by the ``size`` option. If this is enabled, the
                 resizing occurs even if the former condition is not met.
+            ``format``
+                This is the format in which the thumbnail should be saved.
+                 Valid values are those supported by PIL.
 
         Example::
         
@@ -259,7 +266,7 @@ class EnhancedImageField(ImageField):
             
             class MyModel(models.Model):
                 photo = EnhancedImageField(
-                    resize_source = '512x384',
+                    process_source = '512x384',
                     thumbnails = {
                         'avatar': dict(size='80x60', sharpen=True),
                         'large': dict(size='200x150'),
@@ -267,7 +274,7 @@ class EnhancedImageField(ImageField):
                 )
         
         """
-        self.resize_source = resize_source
+        self.process_source = process_source
         self.thumbnails = thumbnails
         super(EnhancedImageField, self).__init__(**kwargs)
 

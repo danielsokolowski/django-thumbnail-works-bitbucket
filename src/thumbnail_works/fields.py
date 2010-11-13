@@ -50,9 +50,11 @@ class Thumbnail:
         if self._options_are_valid(options):
             self.options = options
         
-        self.size = options['size']
+        self.size = options['size'] # size in the formn WIDTHxHEIGHT
         self.width, self.height = get_width_height_from_string(self.size)
         self.url = make_thumbnail_path(source.url, self.name)
+    
+    # Private API
     
     def _get_name(self, name):
         return name.replace(' ', '_')
@@ -128,9 +130,7 @@ class EnhancedImageFieldFile(ImageFieldFile):
         # exist and the source image has been saved.
         if self._committed and self.field.thumbnails:
             for thumb_name, thumb_options in self.field.thumbnails.items():
-                
                 thumb_obj = Thumbnail(thumb_name, thumb_options, self)
-                thumb_size = thumb_options['size']
                 setattr(self, thumb_name, thumb_obj)
     
     def save(self, name, content, save=True):

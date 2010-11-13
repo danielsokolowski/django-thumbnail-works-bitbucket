@@ -29,7 +29,7 @@ import copy
 
 
 from django.db.models.fields.files import ImageField, ImageFieldFile
-
+from django.core.files.base import ContentFile
 
 from thumbnail_works.exceptions import ImageSizeError, ThumbnailOptionError
 from thumbnail_works.utils import get_width_height_from_string, \
@@ -45,7 +45,6 @@ class ThumbnailSpec:
     
     """
     
-    #MANDATORY_OPTIONS = ['size']
     DEFAULT_OPTIONS = {
         'size': None,
         'sharpen': False,
@@ -79,8 +78,8 @@ class ThumbnailSpec:
         """
         ext = self.options['format'].lower()
         if ext == 'jpeg':
-            return 'jpg'
-        return ext
+            return '.jpg'
+        return '.%s' % ext
     
     def _get_options(self, options):
         """This method ensures that all the available options are set to a
@@ -92,8 +91,6 @@ class ThumbnailSpec:
         return thumb_options
     
     def _options_are_valid(self, options):
-        #if not options.has_key('size'):
-        #    raise ThumbnailOptionError('Thumbnail is missing the mandatory `size` option')
         for option in options.keys():
             if option not in self.DEFAULT_OPTIONS.keys():
                 raise ThumbnailOptionError('Invalid thumbnail option `%s`' % option)
@@ -165,42 +162,41 @@ class EnhancedImageFieldFile(ImageFieldFile):
                 thumb_spec = ThumbnailSpec(thumb_name, thumb_options, self)
                 setattr(self, thumb_name, thumb_spec)
     
-    def _generate_thumbnail(self, content, name, options, source):
+    def generate_thumbnail(self, thumb_name, thumb_options, content=None):
         """
-        content: content object
-        name: the name of the thumbnail as defined in the self.field.thumbnails
-        options: the thumbnail options as defined in the self.field.thumbnails
+        thumb_name: the name of the thumbnail as defined in the self.field.thumbnails
+        thumb_options: the thumbnail options as defined in the self.field.thumbnails
         source: an instance of the EnhancedImageFieldFile
+        content: content object.
         """
-        thumb_spec = ThumbnailSpec(name, options, source)
+        if content is None:
+            # Get the content
+            content = ContentFile(self.storage.open(self.name).read())
+            
+        thumb_spec = ThumbnailSpec(thumb_name, thumb_options, self)
         processed_content = process_content_as_image(content, thumb_spec.options)
-        path = make_thumbnail_path(source.path, name, force_ext=thumb_spec.ext)
+        path = make_thumbnail_path(self.name, thumb_name, force_ext=thumb_spec.ext)
         path_saved = self.storage.save(path, processed_content)
         
         assert path == path_saved, 'The calculated \
         thumbnail path `%s` and the actual path where the thumbnail \
         was saved `%s` differ.'
+        
+        print 'generated thumbnail: %s' % path
     
     def __LALAgetattr__(self, attrName):
         if not self.__dict__.has_key(attrName):
             if self.field.thumbnails.has_key(attrName):
                 thumb_options = self.field.thumbnails[attrName]
-                thumb_spec = ThumbnailSpec(attrName, thumb_options, self)
-                processed_content = process_content_as_image(content, thumb_spec.options)
-                thumb_path = make_thumbnail_path(source_path, thumb_name, force_ext=thumb_spec.ext)
-                thumb_path_saved = self.storage.save(thumb_path, processed_content)
-                
-                assert thumb_path == thumb_path_saved, 'The calculated \
-                thumbnail path `%s` and the actual path where the thumbnail \
-                was saved `%s` differ.'
-                
+                self.generate_thumbnail(attrName, thumb_options)
                 self.__dict__[attrName] = thumb_spec
         return self.__dict__[attrName]
         
     
     def save(self, name, content, save=True):
-        source_filename = name
-        print source_filename
+        """
+        name: filename
+        """
         
         # Before saving, resize the source image if the process_source has been
         # set.
@@ -209,12 +205,14 @@ class EnhancedImageFieldFile(ImageFieldFile):
             thumb_spec = ThumbnailSpec('dummy', source_img_opts, self)
             # This also saves the source image using the THUMBNAILS_FORMAT
             processed_content = process_content_as_image(content, thumb_spec.options)
+            name = '%s%s' % (name.rsplit('.', 1)[0], thumb_spec.ext)
+            print 'Resized original image'
         else:
             processed_content = content
         
         # TODO: set correct extension according to the format
         
-        super(EnhancedImageFieldFile, self).save(source_filename, processed_content, save)
+        super(EnhancedImageFieldFile, self).save(name, processed_content, save)
         
         # self.name has been re-set in the save() above
         # use self.name to generate the thumbnail filename
@@ -222,32 +220,25 @@ class EnhancedImageFieldFile(ImageFieldFile):
         print 'self.name:', source_path
         
         # Generate thumbnails
-        # Usee also:  if self._committed and 
+        # Use also:  if self._committed and 
         
         if self.field.thumbnails:
             for thumb_name, thumb_options in self.field.thumbnails.items():
-                thumb_spec = ThumbnailSpec(thumb_name, thumb_options, self)
-                processed_content = process_content_as_image(content, thumb_spec.options)
-                thumb_path = make_thumbnail_path(source_path, thumb_name, force_ext=thumb_spec.ext)
-                thumb_path_saved = self.storage.save(thumb_path, processed_content)
-                
-                assert thumb_path == thumb_path_saved, 'The calculated \
-                thumbnail path `%s` and the actual path where the thumbnail \
-                was saved `%s` differ.'
+                self.generate_thumbnail(thumb_name, thumb_options, content=content)
     
-                
     def delete(self, save=True):
-        source_path = copy.copy(self.name)
-        super(EnhancedImageFieldFile, self).delete(save)
-        
-        """
+        # Use also:  if self._committed and 
         # Delete thumbnails
         if self.field.thumbnails:
-            for thumbnail_name, thumbnail_size in self.field.thumbnails.items():
-                path = make_thumbnail_path(source_path, thumbnail_name)
+            for thumb_name, thumb_options in self.field.thumbnails.items():
+                path = make_thumbnail_path(self.name, thumb_name)
                 self.storage.delete(path)
+        
+        #source_path = copy.copy(self.name)
+        super(EnhancedImageFieldFile, self).delete(save)
+        
+        
                 
-      """
 
 
 class EnhancedImageField(ImageField):

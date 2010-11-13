@@ -40,9 +40,12 @@ from thumbnail_works import image_processors
 
 
 
-class Thumbnail:
+class ThumbnailSpec:
+    """Thumbnail specification.
     
-    MANDATORY_OPTIONS = ['size']
+    """
+    
+    #MANDATORY_OPTIONS = ['size']
     DEFAULT_OPTIONS = {
         'size': None,
         'sharpen': False,
@@ -54,7 +57,8 @@ class Thumbnail:
         """
         name: the thumbnail name as set in the 'thumbnails' dictionary
         options: the thumbnail options as set in the 'thumbnails' dictionary
-
+        source: an instance of the EnhancedImageFieldFile
+        
         """
         if self._options_are_valid(options):
             self.options = self._get_options(options)
@@ -77,8 +81,8 @@ class Thumbnail:
         return thumb_options
     
     def _options_are_valid(self, options):
-        if not options.has_key('size'):
-            raise ThumbnailOptionError('Thumbnail is missing the mandatory `size` option')
+        #if not options.has_key('size'):
+        #    raise ThumbnailOptionError('Thumbnail is missing the mandatory `size` option')
         for option in options.keys():
             if option not in self.DEFAULT_OPTIONS.keys():
                 raise ThumbnailOptionError('Invalid thumbnail option `%s`' % option)
@@ -114,8 +118,8 @@ class EnhancedImageFieldFile(ImageFieldFile):
     
         photo.avatar.url
     
-    For information about the attributes of each thimbnail object, read the
-    ``Thumbnail`` docstring.
+    For information about the attributes of each thumbnail object, read the
+    ``ThumbnailSpec`` docstring.
     
     """
     
@@ -137,8 +141,8 @@ class EnhancedImageFieldFile(ImageFieldFile):
           deleted from the filesystem.
         
         If the source image has been saved and thumbnails have been specified,
-        instanciate the latter using the ``Thumbnail`` class and add them as
-        attributes to the ``EnhancedImageFieldFile`` object.
+        instanciate the latter using the ``ThumbnailSpec`` class and add them
+        as attributes to the ``EnhancedImageFieldFile`` object.
         
         """
         super(EnhancedImageFieldFile, self).__init__(*args, **kwargs)
@@ -147,8 +151,10 @@ class EnhancedImageFieldFile(ImageFieldFile):
         # exist and the source image has been saved.
         if self._committed and self.field.thumbnails:
             for thumb_name, thumb_options in self.field.thumbnails.items():
-                thumb_obj = Thumbnail(thumb_name, thumb_options, self)
-                setattr(self, thumb_name, thumb_obj)
+                thumb_spec = ThumbnailSpec(thumb_name, thumb_options, self)
+                setattr(self, thumb_name, thumb_spec)
+    
+    #def process_image(self, content, options):
     
     def save(self, name, content, save=True):
         source_filename = name
@@ -157,12 +163,13 @@ class EnhancedImageFieldFile(ImageFieldFile):
         # Before saving, resize the source image if the resize_source has been
         # set.
         if self.field.resize_source is not None:
-            # This also saves the source image using the THUMBNAILS_FORMAT 
+            thumb_spec = ThumbnailSpec('dummy', self.field.resize_source, self)
+            # This also saves the source image using the THUMBNAILS_FORMAT
             processed_content = process_content_as_image(
-                content, resize_to=self.field.resize_source, sharpen=True)
+                content, options=thumb_spec.options)
         elif settings.THUMBNAILS_FORCE_SOURCE_FORMAT:
-            processed_content = process_content_as_image(
-                content, sharpen=True, format=settings.THUMBNAILS_FORCE_SOURCE_FORMAT)
+            thumb_spec = ThumbnailSpec('dummy', {}, self)
+            processed_content = process_content_as_image(content, thumb_spec.options, format=settings.THUMBNAILS_FORCE_SOURCE_FORMAT)
         else:
             processed_content = content
         super(EnhancedImageFieldFile, self).save(source_filename, processed_content, save)
@@ -174,12 +181,14 @@ class EnhancedImageFieldFile(ImageFieldFile):
         
         # Generate thumbnails
         if self.field.thumbnails:
-            for thumb_name, thumb_size in self.field.thumbnails.items():
+            for thumb_name, thumb_options in self.field.thumbnails.items():
                 #new_content = copy.deepcopy(content)
                 print "Doing: ", thumb_name, thumb_size
-
+                
+                thumb_spec = ThumbnailSpec(thumb_name, thumb_options, self)
+                
                 processed_content = process_content_as_image(
-                    content, resize_to=thumb_size, sharpen=True)
+                    content, thumb_spec.options)
                 thumb_path = make_thumbnail_path(source_path, thumb_name)
                 print thumb_path
                 thumb_path_saved = self.storage.save(thumb_path, processed_content)

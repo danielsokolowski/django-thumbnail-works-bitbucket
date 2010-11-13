@@ -28,7 +28,7 @@
 from PIL import Image, ImageFilter
 
 
-def resize(im, size):
+def resize(im, size, upscale):
     """
     The resize happens only if any of the following conditions is met:
     
@@ -46,6 +46,8 @@ def resize(im, size):
     landscape_orientation = True
     if width_source < height_source:
         landscape_orientation = False
+    
+    #TODO: check the upscale
     
     # Determine if resize is needed. (Also creates the temporary resized file)
     if width_source > width_req or height_source > height_req:

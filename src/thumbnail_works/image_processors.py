@@ -25,14 +25,7 @@
 #  limitations under the License.
 #
 
-import StringIO
 from PIL import Image, ImageFilter
-
-from django.core.files.base import ContentFile
-from django.core.files import File
-
-from thumbnail_works.utils import get_width_height_from_string
-from thumbnail_works import settings
 
 
 def resize(im, size):
@@ -45,7 +38,7 @@ def resize(im, size):
     """
     
     # Requested dimensions
-    width_req, height_req = get_width_height_from_string(size)
+    width_req, height_req = size
     # Source image dimensions
     width_source, height_source = im.size
     

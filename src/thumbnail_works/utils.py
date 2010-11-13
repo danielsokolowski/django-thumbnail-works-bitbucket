@@ -26,8 +26,15 @@
 #
 
 import os
+import StringIO
+from PIL import Image
+
+from django.core.files.base import ContentFile
+from django.core.files import File
 
 from thumbnail_works.exceptions import ImageSizeError
+from thumbnail_works import image_processors
+from thumbnail_works import settings
 
 
 def get_width_height_from_string(size):
@@ -63,4 +70,31 @@ def get_thumbnail_path(source_path, thumbnail_name):
     filename = os.path.basename(source_path)
     base_filename, ext = os.path.splitext(filename)
     return os.path.join(root_dir, '%s.%s.%s' % (base_filename, thumbnail_name, ext))
+
+
+def process_content_as_image(content, resize_to=None, sharpen=False):
+    
+    # Image.open() accepts a file-like object, but it is needed
+    # to rewind it back to be able to get the data,
+    content.seek(0)
+    im = Image.open(content)
+    
+    # Convert to RGB if necessary
+    if im.mode not in ('L', 'RGB', 'RGBA'):
+        im = im.convert('RGB')
+    
+    # Process
+    if resize_to is not None:
+        im = image_processors.resize(im, get_width_height_from_string(resize_to))
+    if sharpen:
+        im = image_processors.sharpen(im)
+    
+    io = StringIO.StringIO()
+    
+    if settings.THUMBNAILS_FORMAT == 'JPEG':
+        im.save(io, 'JPEG', quality=settings.THUMBNAILS_QUALITY)
+    elif settings.THUMBNAILS_FORMAT == 'PNG':
+        im.save(io, 'PNG')
+    
+    return ContentFile(io.getvalue())
 

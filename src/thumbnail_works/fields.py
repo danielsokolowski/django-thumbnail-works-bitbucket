@@ -79,6 +79,8 @@ class ThumbnailSpec:
             The absolute path of the thumbnail on the filesystem. Note that
             this is only set for thumbnails that are stored locally. For
             other storages a value of None is set.
+        ``path_relative``
+            The path to the thumbnail relative to MEDIA_ROOT.
         
         """
         if self._options_are_valid(options):
@@ -88,6 +90,7 @@ class ThumbnailSpec:
         self.width, self.height = get_width_height_from_string(options['size'])
         self.url = make_thumbnail_path(source.url, self.name)
         self.path = make_thumbnail_path(source.path, self.name)
+        self.path_relative = make_thumbnail_path(source.name, self.name)
     
     # Private API
     
@@ -104,8 +107,7 @@ class ThumbnailSpec:
         return '.%s' % ext
     
     def _get_options(self, options):
-        """This method ensures that all the available options are set to a
-        value.
+        """This method ensures that all the available options have a value.
         
         """
         thumb_options = self.DEFAULT_OPTIONS.copy()
@@ -189,22 +191,28 @@ class EnhancedImageFieldFile(ImageFieldFile):
         if self._committed and self.field.thumbnails:
             for thumb_name, thumb_options in self.field.thumbnails.items():
                 thumb_spec = ThumbnailSpec(thumb_name, thumb_options, self)
-                setattr(self, thumb_name, thumb_spec)
+                if self.storage.exists(thumb_spec.path_relative):
+                    setattr(self, thumb_name, thumb_spec)
     
     def generate_thumbnail(self, thumb_name, thumb_options, content=None):
-        """Generates a thumbnail
+        """Generates a thumbnail and returns the thumbnail specification.
         
         ``thumb_name``
             The name of the thumbnail as defined in ``self.field.thumbnails``.
         ``thumb_options``
             The thumbnail options as defined in ``self.field.thumbnails``.
-        ``content``: Image data. If this is not set, then the image data is
-          read from the storage.
+        ``content``: Image data.
+        
+        If the ``content`` argument is None, then the image data is read
+        from the storage. On IOError returns None
         
         """
         if content is None:
             # Get the content
-            content = ContentFile(self.storage.open(self.name).read())
+            try:
+                content = ContentFile(self.storage.open(self.name).read())
+            except IOError:
+                return None
             
         thumb_spec = ThumbnailSpec(thumb_name, thumb_options, self)
         processed_content = process_content_as_image(content, thumb_spec.options)
@@ -216,12 +224,22 @@ class EnhancedImageFieldFile(ImageFieldFile):
         was saved `%s` differ.'
         
         print 'generated thumbnail: %s' % path
+        
+        return thumb_spec
     
-    def __LALAgetattr__(self, attrName):
+    def __getattr__(self, attrName):
+        """
+        http://western-skies.blogspot.com/2008/02/complete-example-of-getattr-in-python.html
+        """
         if not self.__dict__.has_key(attrName):
+            # Proceed in thumbnail generation only if a thumbnail attribute
+            # is requested
             if self.field.thumbnails.has_key(attrName):
+                print 'requested thumbnail: %s' % attrName
+                # Generate thumbnail and set the thumbnail specification as
+                # an attribute to the ``EnhancedImageFieldFile``.
                 thumb_options = self.field.thumbnails[attrName]
-                self.generate_thumbnail(attrName, thumb_options)
+                thumb_spec = self.generate_thumbnail(attrName, thumb_options)
                 self.__dict__[attrName] = thumb_spec
         return self.__dict__[attrName]
         
@@ -258,11 +276,14 @@ class EnhancedImageFieldFile(ImageFieldFile):
         
         super(EnhancedImageFieldFile, self).save(name, processed_content, save)
         
-        #if not THUMBNAILS_DELAYED_GENERATION
-        # Generate thumbnails
+        if settings.THUMBNAILS_DELAYED_GENERATION:
+            # Thumbnails will be generated on first access
+            return
+        
+        # Generate all thumbnails
         if self._committed and self.field.thumbnails:
             for thumb_name, thumb_options in self.field.thumbnails.items():
-                self.generate_thumbnail(thumb_name, thumb_options, content=content)
+                thumb_spec = self.generate_thumbnail(thumb_name, thumb_options, content=content)
     
     def delete(self, save=True):
         """Deletes the thumbnails and the source image.

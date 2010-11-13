@@ -25,7 +25,7 @@
 #  limitations under the License.
 #
 
-VERSION = (0, 1, 0, 'final', 0)
+VERSION = (0, 1, 1, 'final', 0)
 
 def get_version():
     version = '%d.%d.%d' % (VERSION[0], VERSION[1], VERSION[2])
@@ -36,12 +36,21 @@ long_description = """
 django-thumbnail-works provides an enhanced ImageField that generates and
 manages thumbnails of the uploaded image.
 
+Warning: This software is not production-ready!
+
+Features
+--------
+- Provides the ``EnhancedImageField`` model field which is based on the
+  default Django ``ImageField``.
+- Supports named thumbnails which can be accessed as attributes of the
+  ``EnhancedImageField`` instance.
 - Uses the Django storages API to manage thumbnails.
 - Allows processing the original image before saving in the same manner that
   thumbnails are processed.
 - Individual processing options for each thumbnail.
 - Supports automatic image resizing and cropping, sharpen and detail filters
   and specifying the output format of each image.
+- Supports thumbnail generation on first access.
 
 More information
 ----------------

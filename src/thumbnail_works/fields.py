@@ -65,8 +65,7 @@ class ImageObject:
             im.save(io, 'PNG')
         
         return ContentFile(io.getvalue())
-        #return File(io)
-    
+
     
 class Thumbnail:
     
@@ -102,28 +101,28 @@ class EnhancedImageFieldFile(ImageFieldFile):
         im = img_obj.get_img_data_from_file(content)
         im = image_processors.resize(im, self.field.resize_source)
         im = image_processors.sharpen(im)
-        content = img_obj.get_file_for_img_data(im)
+        resized_content = img_obj.get_file_for_img_data(im)
         
-        
-        super(EnhancedImageFieldFile, self).save(name, content, save)
+        super(EnhancedImageFieldFile, self).save(name, resized_content, save)
         
         # self.name has been re-set in the save() above
         # use self.name to generate the thumbnail filename
         
-        """
         # Generate thumbnails
         if self.field.thumbnails:
             for thumbnail_name, thumbnail_size in self.field.thumbnails.items():
-                new_content = copy.copy(content)
+                #new_content = copy.deepcopy(content)
+                print "Doing: ", thumbnail_name, thumbnail_size
                 img_obj = ImageObject()
-                im = img_obj.get_img_data_from_file(new_content)
+                im = img_obj.get_img_data_from_file(content)
                 image_processors.resize(im, thumbnail_size)
-                new_content = img_obj.get_file_for_img_data(im)
-                path = get_thumbnail_path(self.name, thumbnail_name)
-                path_saved = self.storage.save(name, content)
+                thumbnail_content = img_obj.get_file_for_img_data(im)
+                path = get_thumbnail_path(name, thumbnail_name)
+                print path
+                path_saved = self.storage.save(path, thumbnail_content)
                 
                 # check if path == path_saved
-         """
+    
                 
     def delete(self, save=True):
         source_path = copy.copy(self.name)

@@ -139,16 +139,25 @@ class EnhancedImageFieldFile(ImageFieldFile):
 
 
 class EnhancedImageField(ImageField):
+    """An enhanced version of the Django ImageField that supports thumbnails.
+    
+    """
     attr_class = EnhancedImageFieldFile
     
     def __init__(self, resize_source=None, thumbnails={}, **kwargs):
-        """
-        resize_source: image size in WIDTHxHEIGHT. If set, the uploaded image
-        will be resized to this size.
+        """Constructor
         
-        Thumbnails format:
+        Accepts regular ImageField keyword arguments and also:
         
-            <thumbnail_name> : <size>
+        ``resize_source``
+            A string of the WIDTHxHEIGHT which represents the size to which
+            the uploaded image will be resized before saved to the storage.
+            If not set, the uploaded image is not resized.
+        ``thumbnails``
+            A dictionary of thumbnail definitions. The format of each
+            thumbnail definition is::
+
+                <thumbnail_name> : <size>
         
         """
         self.resize_source = resize_source

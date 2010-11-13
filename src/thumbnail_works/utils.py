@@ -73,6 +73,8 @@ def make_thumbnail_path(source_path, thumbnail_name, force_ext=None):
     source_path: /media/images/photo.jpg
     thumbnail: /media/images/photo.<thumbname>.jpg
     """
+    if not source_path:
+        return
     root_dir = os.path.dirname(source_path)  # /media/images
     filename = os.path.basename(source_path)    # photo.jpg
     base_filename, ext = os.path.splitext(filename)

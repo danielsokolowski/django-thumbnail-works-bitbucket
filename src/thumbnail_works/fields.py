@@ -54,10 +54,31 @@ class ThumbnailSpec:
         }
     
     def __init__(self, name, options, source):
-        """
-        name: the thumbnail name as set in the 'thumbnails' dictionary
-        options: the thumbnail options as set in the 'thumbnails' dictionary
-        source: an instance of the EnhancedImageFieldFile
+        """Constructor
+        
+        ``name``
+            The thumbnail name as set in the ``thumbnails`` dictionary.
+        ``options``
+            The thumbnail options as set in the ``thumbnails`` dictionary.
+        ``source``
+            An instance of the ``EnhancedImageFieldFile``.
+        
+        ThumbnailSpec Instance Attributes
+        ---------------------------------
+        ``name``
+            The name of the thumbnail
+        ``ext``
+            The thumbnail extension
+        ``width``
+            The thumbnail width
+        ``height``
+            The thumbnail height
+        ``url``
+            The absolute thumbnail's URL
+        ``path``
+            The absolute path of the thumbnail on the filesystem. Note that
+            this is only set for thumbnails that are stored locally. For
+            other storages a value of None is set.
         
         """
         if self._options_are_valid(options):
@@ -66,6 +87,7 @@ class ThumbnailSpec:
         self.ext = self._get_filename_extension_from_format()
         self.width, self.height = get_width_height_from_string(options['size'])
         self.url = make_thumbnail_path(source.url, self.name)
+        self.path = make_thumbnail_path(source.path, self.name)
     
     # Private API
     
@@ -129,24 +151,31 @@ class EnhancedImageFieldFile(ImageFieldFile):
     For information about the attributes of each thumbnail object, read the
     ``ThumbnailSpec`` docstring.
     
+    Notes for development
+    =====================
+    
+    Instance attributes
+    -------------------
+    Throughout this object the following attributes that are inherited
+    from ``ImageFieldFile`` are used:
+    
+    - instance: The instance of the model that contains the
+      EnhancedImageField.
+    - field: The instance of the EnhancedImageField.
+    - storage: The ``storage`` attribute of the EnhancedImageField instance.
+    - _committed: boolean attribute that indicates whether the file object
+      has been committed to the database and therefore saved to the
+      storage or the file has been deleted from the database and therefore
+      deleted from the filesystem.
+    
+    Also the ``name`` attribute is set once the ``save()`` method has been
+    called. ``name`` is the name of the file including the relative path
+    from MEDIA_ROOT.
+    
     """
     
     def __init__(self, *args, **kwargs):
         """Constructor.
-        
-        Notes for development:
-        
-        Throughout this class the following attributes that are inherited
-        from ``ImageFieldFile`` are used:
-        
-        - instance: The instance of the model that contains the
-          EnhancedImageField.
-        - field: The instance of the EnhancedImageField.
-        - storage: The ``storage`` attribute of the EnhancedImageField instance.
-        - _committed: boolean attribute that indicates whether the file object
-          has been committed to the database and therefore saved to the
-          storage or the file has been deleted from the database and therefore
-          deleted from the filesystem.
         
         If the source image has been saved and thumbnails have been specified,
         instanciate the latter using the ``ThumbnailSpec`` class and add them
@@ -155,19 +184,23 @@ class EnhancedImageFieldFile(ImageFieldFile):
         """
         super(EnhancedImageFieldFile, self).__init__(*args, **kwargs)
         
-        # Set thumbnail objects as attributes only if thumbnail definitions
-        # exist and the source image has been saved.
+        # Set ThumbnailSpec objects as attributes only if thumbnail
+        # definitions exist and the source image has been saved.
         if self._committed and self.field.thumbnails:
             for thumb_name, thumb_options in self.field.thumbnails.items():
                 thumb_spec = ThumbnailSpec(thumb_name, thumb_options, self)
                 setattr(self, thumb_name, thumb_spec)
     
     def generate_thumbnail(self, thumb_name, thumb_options, content=None):
-        """
-        thumb_name: the name of the thumbnail as defined in the self.field.thumbnails
-        thumb_options: the thumbnail options as defined in the self.field.thumbnails
-        source: an instance of the EnhancedImageFieldFile
-        content: content object.
+        """Generates a thumbnail
+        
+        ``thumb_name``
+            The name of the thumbnail as defined in ``self.field.thumbnails``.
+        ``thumb_options``
+            The thumbnail options as defined in ``self.field.thumbnails``.
+        ``content``: Image data. If this is not set, then the image data is
+          read from the storage.
+        
         """
         if content is None:
             # Get the content
@@ -194,51 +227,58 @@ class EnhancedImageFieldFile(ImageFieldFile):
         
     
     def save(self, name, content, save=True):
-        """
-        name: filename
+        """Saves the source image and generates thumbnails.
+        
+        ``name``
+            The name of the file including the relative path from MEDIA_ROOT.
+        ``content``
+            The file data.
+        
+        If the ``process_source`` dictionary has been set on the
+        ``EnhancedImageField`` field, then the source image is also
+        processed before it is finally saved to the storage.
+        
+        After the source file is saved, if the THUMBNAILS_DELAYED_GENERATION
+        setting has been enabled, no thumbnails are generated. The thumbnails
+        will be generated the first time they are accessed.
+        If THUMBNAILS_DELAYED_GENERATION is set to False, then all thumbnails
+        are generated as soon as the source image is saved.
+        
         """
         
-        # Before saving, resize the source image if the process_source has been
-        # set.
+        # Resize the source image if the process_source has been set.
         if self.field.process_source is not None:
             source_img_opts = self.field.process_source
             thumb_spec = ThumbnailSpec('dummy', source_img_opts, self)
-            # This also saves the source image using the THUMBNAILS_FORMAT
             processed_content = process_content_as_image(content, thumb_spec.options)
             name = '%s%s' % (name.rsplit('.', 1)[0], thumb_spec.ext)
             print 'Resized original image'
         else:
             processed_content = content
         
-        # TODO: set correct extension according to the format
-        
         super(EnhancedImageFieldFile, self).save(name, processed_content, save)
         
-        # self.name has been re-set in the save() above
-        # use self.name to generate the thumbnail filename
-        source_path = self.name
-        print 'self.name:', source_path
-        
+        #if not THUMBNAILS_DELAYED_GENERATION
         # Generate thumbnails
-        # Use also:  if self._committed and 
-        
-        if self.field.thumbnails:
+        if self._committed and self.field.thumbnails:
             for thumb_name, thumb_options in self.field.thumbnails.items():
                 self.generate_thumbnail(thumb_name, thumb_options, content=content)
     
     def delete(self, save=True):
-        # Use also:  if self._committed and 
-        # Delete thumbnails
-        if self.field.thumbnails:
+        """Deletes the thumbnails and the source image.
+        
+        If the files are missing from the storage, no errors are raised.
+        
+        """
+        # First try to delete the thumbnails
+        if self._committed and self.field.thumbnails:
             for thumb_name, thumb_options in self.field.thumbnails.items():
                 path = make_thumbnail_path(self.name, thumb_name)
                 self.storage.delete(path)
         
-        #source_path = copy.copy(self.name)
+        # Delete the source file
         super(EnhancedImageFieldFile, self).delete(save)
-        
-        
-                
+
 
 
 class EnhancedImageField(ImageField):

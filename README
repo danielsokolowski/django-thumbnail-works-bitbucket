@@ -1,58 +1,79 @@
-django-thumbnail-works README
+django-thumbnail-works
 ========================================================================
-django-thumbnail-works provides an enhanced ImageField that generates and
-manages thumbnails of the uploaded image.
 
-Project Development Web Site:
- * https://www.codetrax.org/projects/django-thumbnail-works
+django-thumbnail-works adds thumbnail support to the default ImageField.
 
-Public Source Code Repository:
- * https://source.codetrax.org/hgroot/django-thumbnail-works
+Licensed under the *Apache License version 2.0*. More licensing information
+exists in the license_ section.
 
 
-How this distribution package is organized
-========================================================================
-The following list outlines the kind of information each of the files of this
-distribution package contains:
+Features
+========
 
- * AUTHORS  : List of all authors and contributors.
- * BUGS     : Information about how to file bug reports or ask for new features.
- * HELP     : Instructions on how to use this software.
- * INSTALL  : Information on how to install this application.
- * LICENSE  : The terms of the license that governs your use of this software.
- * NOTICE   : Copyright, trademark, attribution and sponsorship information.
- * SUPPORT  : Information on how to get support for this software.
- * README   : This file.
+- Feature A
+- Feature B
 
 
-How to read the HELP document
-========================================================================
-The HELP document is written in reStructuredText (rst). Although
-reStructuredText is an easy-to-read plain text markup format, it is
-recommended to convert it to HTML for a better reading experience.
+Documentation
+=============
 
-In order to convert this document to HTML you need `docutils`, which
-you can install in your system using `pip`::
+Apart from the `django-thumbnail-works Online Documentation`_, more information about the
+installation, configuration and usage of this application may be available
+at the project's wiki_.
 
-    pip install docutils
+.. _`django-thumbnail-works Online Documentation`: http://packages.python.org/django-thumbnail-works
+.. _wiki: http://www.codetrax.org/projects/django-thumbnail-works/wiki
 
-Or `easy_install`:
 
-    easy_install docutils
+Donations
+=========
 
-Once `docutils` is installed, you can use the `rst2html.py` utility to
-perform the conversion:
+A significant amount of time and effort has gone into developing this software
+and writing this documentation. So, the production of this software has not
+been free from cost. It is highly recommended that, if you use this software
+*in production*, you should consider making a donation.
 
-    rst2html.py HELP help.html
+To make a donation, please visit the CodeTRAX `donations page`_ which contains
+a PayPal_ *donate* button.
 
-Then use any web browser to view the exported `help.html` file.
+Thank you for considering making a donation to django-thumbnail-works.
+
+.. _`donations page`: https://source.codetrax.org/donate.html
+.. _PayPal: https://www.paypal.com
+
+
+Bugs and feature requests
+=========================
+
+In case you run into any problems while using this application or think that
+a new feature should be implemented, it is highly recommended you submit_ a new
+report about it at the project's `issue tracker`_.
+
+Using the *issue tracker* is the recommended way to notify the authors about
+bugs or make feature requests. Also, before submitting a new report, please
+make sure you have read the `new issue guidelines`_.
+
+.. _submit: http://www.codetrax.org/projects/django-thumbnail-works/issues/new
+.. _`issue tracker`: http://www.codetrax.org/projects/django-thumbnail-works/issues
+.. _`new issue guidelines`: http://www.codetrax.org/NewIssueGuidelines
+
+
+Support
+=======
+
+CodeTRAX does not provide support for django-thumbnail-works.
+
+You can still get community support at the `Community Support Forums`_:
+
+.. _`Community Support Forums`: http://www.codetrax.org/projects/django-thumbnail-works/boards
 
 
 License
-========================================================================
+=======
+
 Copyright 2010 George Notaras <gnot [at] g-loaded.eu>
 
-Licensed under the Apache License, Version 2.0 (the "License");
+Licensed under the *Apache License, Version 2.0* (the "*License*");
 you may not use this file except in compliance with the License.
 
 Unless required by applicable law or agreed to in writing, software
@@ -61,6 +82,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-A copy of the License exists in the product distribution; the LICENSE file.
-For copyright notes please read the NOTICE file.
-
+A copy of the License exists in the product distribution; the *LICENSE* file.
+For copyright and other important notes regarding this release please read
+the *NOTICE* file.

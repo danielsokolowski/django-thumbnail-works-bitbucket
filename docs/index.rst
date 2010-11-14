@@ -3,13 +3,53 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to django-thumbnail-works's documentation!
-====================================
+=========================
+django-thumbnail-works's documentation
+=========================
+
+Copyright 2010 `George Notaras`_ <gnot [at] g-loaded.eu>
+
+.. _`George Notaras`: http://www.g-loaded.eu/
+
+Welcome to the *django-thumbnail-works*'s documentation!
+
+
+About this project
+==================
+
+@DESCRIPTION@
+
+| **Author**: `@AUTHOR_NAME@ <http://www.g-loaded.eu/>`_
+| **Development Web Site**: `django-thumbnail-works project <https://www.codetrax.org/projects/django-thumbnail-works>`_
+| **Source Code Repository**: `django-thumbnail-works source code <https://source.codetrax.org/hgroot/django-thumbnail-works>`_
+
+
+About this guide
+================
+
+This guide provides an introduction to the *django-thumbnail-works* |version| release,
+including instructions about how to install, configure and use the current
+*django-thumbnail-works* in Django projects or individual applications.
+
+The contents of this documentation (the "*Documentation*") are subject to the
+**Apache License, Version 2.0** (the "*License*"); you may only use this
+Documentation if you comply with the terms of this License.
+
+A copy of the License exists in the product distribution; the *LICENSE* file.
+For copyright and other important notes regarding this release please read
+the *NOTICE* file.
+
 
 Contents:
 
 .. toctree::
    :maxdepth: 2
+   
+   introduction
+   installation
+   configuration
+   usage
+
 
 Indices and tables
 ==================

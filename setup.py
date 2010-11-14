@@ -3,8 +3,7 @@
 #
 #  This file is part of django-thumbnail-works.
 #
-#  django-thumbnail-works provides an enhanced ImageField that generates and
-#  manages thumbnails of the uploaded image.
+#  django-thumbnail-works adds thumbnail support to the default ImageField.
 #
 #  Development Web Site:
 #    - http://www.codetrax.org/projects/django-thumbnail-works
@@ -51,7 +50,11 @@ sys.path.insert(0, os.path.abspath('src'))
 
 from setuptools import setup
 
-from thumbnail_works import get_version, long_description
+from thumbnail_works import get_version
+
+def read(fname):
+    """Utility function to read the README file."""
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 if __name__=='__main__':
     setup(
@@ -63,9 +66,10 @@ if __name__=='__main__':
         maintainer = 'George Notaras',
         maintainer_email = 'gnot [at] g-loaded.eu',
         url = 'http://www.codetrax.org/projects/django-thumbnail-works',
-        description = 'django-thumbnail-works provides an enhanced ImageField that generates and manages thumbnails of the uploaded image.',
-        long_description = long_description,
+        description = 'django-thumbnail-works adds thumbnail support to the default ImageField.',
+        long_description = read('README'),
         download_url = 'https://source.codetrax.org/hgroot/django-thumbnail-works',
+        platforms=['any'],
         classifiers = [
             'Development Status :: 4 - Beta',
             'Environment :: Web Environment',

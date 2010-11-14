@@ -2,8 +2,7 @@
 #
 #  This file is part of django-thumbnail-works.
 #
-#  django-thumbnail-works provides an enhanced ImageField that generates and
-#  manages thumbnails of the uploaded image.
+#  django-thumbnail-works adds thumbnail support to the default ImageField.
 #
 #  Development Web Site:
 #    - http://www.codetrax.org/projects/django-thumbnail-works

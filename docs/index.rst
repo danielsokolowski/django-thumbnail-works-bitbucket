@@ -17,7 +17,7 @@ Welcome to the *django-thumbnail-works*'s documentation!
 About this project
 ==================
 
-DESCRIPTION_DESCRIPTION_DESCRIPTION
+django-thumbnail-works adds thumbnail support to the default ImageField.
 
 | **Author**: `George Notaras <http://www.g-loaded.eu/>`_
 | **Development Web Site**: `django-thumbnail-works project <https://www.codetrax.org/projects/django-thumbnail-works>`_

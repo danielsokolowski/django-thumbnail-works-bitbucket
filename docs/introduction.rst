@@ -4,13 +4,13 @@ Introduction
 ============
 
 This section contains an introduction to *django-thumbnail-works*, including general
-information about submitting bug reports and making feature requests and
-may also outline the ways to get support for this application.
+information about how to submit bug reports and make feature requests.
 
-@DESCRIPTION@
+DESCRIPTION_DESCRIPTION_DESCRIPTION
 
 Licensed under the **Apache License version 2.0**. More licensing information
 exists in the license_ section.
+
 
 Features
 ========
@@ -21,16 +21,35 @@ Features
 
 Documentation
 =============
-More information about the installation, configuration and usage of this app
-can be found in the `django-thumbnail-works Online Documentation`_
-or at the project's wiki_.
 
-.. _`online documentation`: http://packages.python.org/django-thumbnail-works
+Apart from the `django-thumbnail-works Online Documentation`_, more information about the
+installation, configuration and usage of this application may be available
+at the project's wiki_.
+
+.. _`django-thumbnail-works Online Documentation`: http://packages.python.org/django-thumbnail-works
 .. _wiki: http://www.codetrax.org/projects/django-thumbnail-works/wiki
+
+
+Donations
+=========
+
+A significant amount of time and effort has gone into developing this software
+and writing this documentation. So, the production of this software has not
+been free from cost. It is highly recommended that, if you use this software
+*in production*, you should consider making a donation.
+
+To make a donation, please visit the CodeTRAX `donations page`_ which contains
+a PayPal_ *donate* button.
+
+Thank you for considering making a donation to django-thumbnail-works.
+
+.. _`donations page`: https://source.codetrax.org/donate.html
+.. _PayPal: https://www.paypal.com
 
 
 Bugs and feature requests
 =========================
+
 In case you run into any problems while using this application or think that
 a new feature should be implemented, it is highly recommended you submit_ a new
 report about it at the project's `issue tracker`_.
@@ -46,18 +65,20 @@ make sure you have read the `new issue guidelines`_.
 
 Support
 =======
+
 CodeTRAX does not provide support for django-thumbnail-works.
 
-You can still get community support at the `Community Support Forums`__:
+You can still get community support at the `Community Support Forums`_:
 
-.. __: http://www.codetrax.org/projects/django-thumbnail-works/boards
+.. _`Community Support Forums`: http://www.codetrax.org/projects/django-thumbnail-works/boards
 
-    
+
 License
 =======
+
 Copyright 2010 George Notaras <gnot [at] g-loaded.eu>
 
-Licensed under the **Apache License, Version 2.0** (the "*License*");
+Licensed under the *Apache License, Version 2.0* (the "*License*");
 you may not use this file except in compliance with the License.
 
 Unless required by applicable law or agreed to in writing, software
@@ -69,5 +90,3 @@ limitations under the License.
 A copy of the License exists in the product distribution; the *LICENSE* file.
 For copyright and other important notes regarding this release please read
 the *NOTICE* file.
-
-

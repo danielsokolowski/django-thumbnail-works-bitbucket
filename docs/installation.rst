@@ -14,6 +14,9 @@ Requirements
 This application requires Python_ 2.4 or later, and a functional installation
 of Django_.
 
+.. _Python: http://python.org
+.. _Django: http://www.djangoproject.com
+
 Detailed information about the minimum supported Django version and other
 Python modules that may be required in order to run this software is shown
 below:
@@ -28,13 +31,13 @@ then all these dependencies will also be installed.
 Download
 ========
 
-You can download the latest django-thumbnail-works releases either from the
-`project page`_ at the *Python Package Index* (PyPI):
+You can download the latest django-thumbnail-works releases from the `project page`_ at
+the *Python Package Index* (PyPI).
 
 .. _`project page`: http://pypi.python.org/pypi/django-thumbnail-works
 
-Or you can clone the project's public source code repository and then
-check-out any stable release, all of which are tagged::
+Alternatively, you can clone the project's public source code repository
+and then check-out any stable release, all of which are tagged::
 
     hg clone https://source.codetrax.org/hgroot/django-thumbnail-works
     hg tags
@@ -81,7 +84,7 @@ Please note that the mercurial_ source control management tool is required
 for this operation.
 
 .. _mercurial: http://mercurial.selenic.com/
-.. _`source code repository`: hg+https://source.codetrax.org/hgroot/django-thumbnail-works
+.. _`source code repository`: https://source.codetrax.org/hgroot/django-thumbnail-works
 
 
 How to build the documentation

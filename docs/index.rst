@@ -17,9 +17,9 @@ Welcome to the *django-thumbnail-works*'s documentation!
 About this project
 ==================
 
-@DESCRIPTION@
+DESCRIPTION_DESCRIPTION_DESCRIPTION
 
-| **Author**: `@AUTHOR_NAME@ <http://www.g-loaded.eu/>`_
+| **Author**: `George Notaras <http://www.g-loaded.eu/>`_
 | **Development Web Site**: `django-thumbnail-works project <https://www.codetrax.org/projects/django-thumbnail-works>`_
 | **Source Code Repository**: `django-thumbnail-works source code <https://source.codetrax.org/hgroot/django-thumbnail-works>`_
 
@@ -28,11 +28,11 @@ About this guide
 ================
 
 This guide provides an introduction to the *django-thumbnail-works* |version| release,
-including instructions about how to install, configure and use the current
-*django-thumbnail-works* in Django projects or individual applications.
+including instructions about how to install, configure and use it in
+Django projects or individual Django applications.
 
 The contents of this documentation (the "*Documentation*") are subject to the
-**Apache License, Version 2.0** (the "*License*"); you may only use this
+*Apache License, Version 2.0* (the "*License*"); you may only use this
 Documentation if you comply with the terms of this License.
 
 A copy of the License exists in the product distribution; the *LICENSE* file.
@@ -49,6 +49,7 @@ Contents:
    installation
    configuration
    usage
+   faq
 
 
 Indices and tables
@@ -57,4 +58,13 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+
+.. seealso::
+
+    * All projects_ published by CodeTRAX.
+    * The official `Django Documentation`_.
+
+.. _projects: http://www.codetrax.org/projects
+.. _`Django Documentation`: http://docs.djangoproject.com/en/
 

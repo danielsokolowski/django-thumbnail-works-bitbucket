@@ -21,8 +21,8 @@ In the Django project's ``settings`` module, add ``thumbnail_works`` to the
     )
 
 
-Reference of application settings
-=================================
+Reference of the application settings
+=====================================
 
 The following settings can be specified in the Django project's ``settings``
 module to customize the functionality of *django-thumbnail-works*.

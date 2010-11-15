@@ -15,6 +15,7 @@ import sys, os
 sys.path.insert(0, os.path.abspath(os.path.join('..', 'src')))
 from thumbnail_works import get_version
 
+# This required in order to make autodoc extension work.
 from django.conf import settings
 settings.configure()
 

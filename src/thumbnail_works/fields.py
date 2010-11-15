@@ -126,30 +126,12 @@ class EnhancedImageFieldFile(ImageFieldFile):
     The EnhancedImageFieldFile supports:
     
     - resizing the original image before saving it to the specified storage.
-    - generating thumbnails of the original image on the same storage.
+    - generating thumbnails of the original image on the same storage:
+        - immediately after the original image is uploaded.
+        - delayed generation when each thumbnail is accessed for the first time.
     - deleting the previously generated thumbnails from the specified storage.
     - a mechanism of accessing the thumbnails as attributes of the model's
       EnhancedImageField.
-      
-    For instance, we have the following model definition::
-      
-        from thumbnail_works.fields import EnhancedImageField
-          
-        class MyModel(models.Model):
-            photo = EnhancedImageField(
-                process_source = dict(size='512x384'),
-                thumbnails = {
-                    'avatar': dict(size='80x60', sharpen=True),
-                    'large': dict(size='200x150'),
-                }
-            )
-    
-    Thumbnail attributes can be accessed as follows::
-    
-        photo.avatar.url
-    
-    For information about the attributes of each thumbnail object, read the
-    ``ThumbnailSpec`` docstring.
     
     Notes for development
     =====================
@@ -196,6 +178,8 @@ class EnhancedImageFieldFile(ImageFieldFile):
                 thumb_spec = ThumbnailSpec(thumb_name, thumb_options, self)
                 if self.storage.exists(thumb_spec.path_relative):
                     setattr(self, thumb_name, thumb_spec)
+                    
+                    # TODO: always set the attribute , but be None if file does not exist on the storage
     
     def generate_thumbnail(self, thumb_name, thumb_options, content=None):
         """Generates a thumbnail and returns the thumbnail specification.

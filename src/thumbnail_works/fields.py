@@ -319,61 +319,78 @@ class EnhancedImageFieldFile(ImageFieldFile):
 class EnhancedImageField(ImageField):
     """An enhanced version of the Django ImageField that supports thumbnails.
     
+    *django-thumbnail-works* provides an enhanced version of the default Django's
+    ``ImageField``, which can generate thumbnails of the original image and also
+    process the original image before it is saved on the remote server.
+    
+    The ``EnhancedImageField`` derives from the default ``ImageField`` and thus
+    all attributes and methods of the default ``ImageField`` are inherited.
+    
+    In addition to the default attributes, the ``EnhancedImageField`` also
+    supports the following:
+    
+    ``process_source``
+        A dictionary of *image processing options*. The same options that can
+        be used for the thumbnail generation can also be set in this attribute.
+        If this is set, the original image will be processed using the provided
+        options before it is saved on the remote server. Contrariwise, if this
+        attribute is not set, the uploaded image is saved in its original form,
+        without any further processing.
+    ``thumbnails``
+        A dictionary of *thumbnail definitions*. The format of each thumbnail
+        definition is::
+    
+            <thumbnail_identifier> : <image_processing_options>
+        
+        Where:
+        
+        **thumbnail_identifier**
+            Is a string that uniquely identifies the thumbnail. Note that this
+            identifier is used to access each thumbnail and is also used in the
+            generated filename of the thumbnail image file. See the example
+            at ghe end of this section for a more clear explanation.
+        **image_processing_options**
+            This is a dictionary of options that will be used during the thumbnail
+            generation. Supported options are:
+            
+            ``size``
+                A string of the format ``WIDTHxHEIGHT`` which represents the
+                size of the thumbnail.
+            ``sharpen``
+                Boolean option. If set, the ``ImageFilter.SHARPEN`` filter will
+                be applied to the thumbnail.
+            ``detail``
+                Boolean option. If set, the ``ImageFilter.DETAIL`` filter will
+                be applied to the thumbnail.
+            ``upscale``
+                Boolean option. By default, image resizing occurs only if
+                any of the source image dimensions is bigger than the dimension
+                indicated by the ``size`` option. If the ``upscale`` option is
+                set to True, resizing occurs even if the generated thumbnail
+                is bigger than the source image.
+            ``format``
+                This is the format in which the thumbnail should be saved.
+                Valid values are those supported by PIL.
+    
+    The following code snippet illustrates how to use the ``EnhancedImageField``::
+
+        from django.db import models
+        from thumbnail_works.fields import EnhancedImageField
+        
+        class MyModel(models.Model):
+            photo = EnhancedImageField(
+                process_source = dict(
+                    size='512x384', sharpen=True, upscale=True, format='JPEG'),
+                thumbnails = {
+                    'small': dict(size='80x60'),
+                    'medium': dict(size='256x192', detail=True),
+                }
+            )
+    
     """
     attr_class = EnhancedImageFieldFile
     
     def __init__(self, process_source=None, thumbnails={}, **kwargs):
-        """Constructor
-        
-        Accepts regular ImageField keyword arguments and also:
-        
-        ``process_source``
-            A dictionary of thumbnail options as described below. If this is
-            set, these options will be used for source image resize.
-            Contrariwise, if this is not set, the uploaded image is saved in
-            its original form, unless THUMBNAILS_FORCE_SOURCE_FORMAT is set,
-            in which case the source image is saved in the specified format. 
-        ``thumbnails``
-            A dictionary of thumbnail definitions. The format of each
-            thumbnail definition is::
-
-                <thumbnail_name> : <thumbnail_options>
-            
-            Thumbnail options is a dict of options that will be used during
-            the thumbnail generation. Supported options are:
-            
-            ``size``
-                A string of the WIDTHxHEIGHT which represents the size of
-                the thumbnail.
-            ``sharpen``
-                Boolean option. If set, the ImageFilter.SHARPEN filter will
-                be applied to the thumbnail.
-            ``detail``
-                Boolean option. If set, the ImageFilter.DETAIL filter will
-                be applied to the thumbnail.
-            ``upscale``
-                Boolean option. By default, image resizing occurs only if
-                any of the image dimensions is higher that the dimension
-                indicated by the ``size`` option. If this is enabled, the
-                resizing occurs even if the former condition is not met.
-            ``format``
-                This is the format in which the thumbnail should be saved.
-                 Valid values are those supported by PIL.
-
-        Example::
-        
-            from thumbnail_works.fields import EnhancedImageField
-            
-            class MyModel(models.Model):
-                photo = EnhancedImageField(
-                    process_source = dict(size='512x384'),
-                    thumbnails = {
-                        'avatar': dict(size='80x60', sharpen=True),
-                        'large': dict(size='200x150'),
-                    }
-                )
-        
-        """
         self.process_source = process_source
         self.thumbnails = thumbnails
         super(EnhancedImageField, self).__init__(**kwargs)

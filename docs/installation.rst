@@ -11,7 +11,7 @@ to build the included documentation.
 Requirements
 ============
 
-This application requires Python_ 2.4 or later, and a functional installation
+This application requires Python_ 2.4 or later and a functional installation
 of Django_.
 
 .. _Python: http://python.org
@@ -25,16 +25,17 @@ below:
 
 This information exists in the ``requirements.txt`` file inside the
 django-thumbnail-works distribution package. If ``pip`` is used to install this software,
-then all these dependencies will also be installed.
+then all these dependencies will also be installed, if they are not already
+installed in your system.
 
 
 Download
 ========
 
-You can download the latest django-thumbnail-works releases from the `project page`_ at
+You can download the latest django-thumbnail-works releases from the `releases page`_ at
 the *Python Package Index* (PyPI).
 
-.. _`project page`: http://pypi.python.org/pypi/django-thumbnail-works
+.. _`releases page`: http://pypi.python.org/pypi/django-thumbnail-works
 
 Alternatively, you can clone the project's public source code repository
 and then check-out any stable release, all of which are tagged::
@@ -64,7 +65,7 @@ source install rather than a zipped egg; django-thumbnail-works cannot be
 used from a zipped egg install.
 
 Alternatively, you can simply place the ``thumbnail_works`` directory,
-which exists under the ``src`` directory, somewhere on your Python path,
+which exists under the ``src`` directory, somewhere on your Python path
 or symlink to it from somewhere on your Python path.
 
 Finally, it is also possible to install this application directly from

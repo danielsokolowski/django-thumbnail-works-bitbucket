@@ -58,8 +58,8 @@ Licensing
     works that derive from this software.
 
 **What name should I use for works that derive from your software?**
-    You can use any name you like as long as it does not contain the name
-    of the original project. This is clearly stated in the ``NOTICE`` file.
+    You can use any name you like as long as it *does not contain the name
+    of the original project*. This is clearly stated in the ``NOTICE`` file.
     Please note that this restriction also applies to public forks of the
     original project's source code repository. A different name must be used
     to name your fork.
@@ -71,7 +71,8 @@ Contributions
 **This looks like an interesting project, how can I contribute?**
     The best way to contribute to the project is to test the software for
     possible bugs and also suggest new features or provide feedback
-    regarding the current feature set. Patches are also much appreciated.
+    regarding the current feature set at the project's `issue tracker`_.
+    Patches are also much appreciated.
     
 **How do I submit patches?**
     Please open a ticket at the project's `issue tracker`_ and attach

@@ -6,17 +6,39 @@ Introduction
 This section contains an introduction to *django-thumbnail-works*, including general
 information about how to submit bug reports and make feature requests.
 
-django-thumbnail-works adds thumbnail support to the default ImageField.
+*django-thumbnail-works* provides an enhanced ImageField that generates and
+manages thumbnails of the source image.
 
-Licensed under the **Apache License version 2.0**. More licensing information
+This application aims to be a simple but feature rich thumbnailing
+application for Django based projects.
+
+Licensed under the *Apache License version 2.0*. More licensing information
 exists in the license_ section.
 
+**Warning**: This software is not production-ready!
 
 Features
-========
+--------
+- Provides the ``EnhancedImageField`` model field, which is based on the
+  default Django ``ImageField``, that has the ability to generate and manage
+  thumbnails of the source image.
+- Supports *named* thumbnails which can be accessed as attributes of the
+  ``EnhancedImageField`` instance.
+- Uses the Django storages API to manage thumbnails.
+- Allows processing the original image before saving in the same manner that
+  thumbnails are processed.
+- Individual processing options for each thumbnail.
+- Supports automatic image resizing and cropping to the user specified size.
+  Upscaling the smaller images is also possible.
+- Sharpen and detail filters.
+- Selection of the output format of each image, including the source image.
+- Supports delayed thumbnail generation, which means that thumbnails are
+  generated on first access.
 
-- Feature A
-- Feature B
+Thumbnail generation through template tags is not supported and there are
+no plans to support it in the near future. However, it is extremely easy
+to access the thumbnail atributes in your templates and display them in
+any way you see fit.
 
 
 Documentation

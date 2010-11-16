@@ -41,13 +41,15 @@ class BaseThumbnailFieldFile(ImageFieldFile):
     
     """
         
-    def __init__(self, instance, field, name, identifier, proc_opts):
+    def __init__(self, instance, field, source, name, identifier, proc_opts):
         """Constructor
         
         ``instance``
             The instance of the model that contains the ``EnhancedImageField``.
         ``field``
             The instance of the ``EnhancedImageField``.
+        ``source``
+            The instance of the ``EnhancedImageFieldFile`` of the source image.
         ``name``
             the name of the source image. Needs to pass through
             ``generate_image_name()`` to get a name for the thumbnail.
@@ -60,6 +62,7 @@ class BaseThumbnailFieldFile(ImageFieldFile):
         """
         self.identifier = self.get_identifier(identifier)
         self.setup_image_processing_options(proc_opts)
+        self.source = source
         name = self.generate_image_name(name=name)
         super(BaseThumbnailFieldFile, self).__init__(instance, field, name)
     
@@ -71,26 +74,32 @@ class BaseThumbnailFieldFile(ImageFieldFile):
         return identifier.replace(' ', '_')
     
     def save(self, source_content):
-        """Saves the thumbnail file
+        """Saves the thumbnail file.
         
         ``source_content``
             The image data of the source image
         
         Also sets the current object (thumbnail) as an attribute of the
-        TODO:
+        source image's ImageFieldFile.
         
         """
         thumbnail_content = self.process_image(source_content)
         self.name = self.storage.save(self.name, thumbnail_content)
         
-        TODO:
-        setattr(self.field, self.identifier, self)
+        # Set the thumbnail as an attribute of the source image's ImageFieldFile
+        setattr(self.source, self.identifier, self)
 
         # Update the filesize cache
         self._size = len(thumbnail_content)
         self._committed = True
 
     def delete(self):
+        """Deletes the thumbnail file.
+        
+        Also deletes the current object (thumbnail) from source image's
+        ImageFieldFile object.
+        
+        """
         # Only close the file if it's already open, which we know by the
         # presence of self._file
         if hasattr(self, '_file'):
@@ -101,9 +110,8 @@ class BaseThumbnailFieldFile(ImageFieldFile):
 
         self.name = None
         
-        TODO:
-        if hasattr(self.field, self.identifier):
-            delattr(self.field, self.identifier)
+        if hasattr(self.source, self.identifier):
+            delattr(self.source, self.identifier)
 
         # Clear the image dimensions cache
         if hasattr(self, '_dimensions_cache'):
@@ -164,13 +172,13 @@ class BaseEnhancedImageFieldFile(ImageFieldFile):
             deleted from the filesystem.
         
         Thumbnails are set as attributes of the ``BaseEnhancedImageFieldFile``
-        object according tot he following rules:
+        object (source image) according to the following rules:
         
         - If the ``THUMBNAILS_DELAYED_GENERATION`` setting has been enabled, then
           each thumbnail is set as an attribute of the source image only if the
           thumbnail file exists on the storage. In the case that the thumbnail
           does not exist on the storage, it will be generated as soon as it is
-          accessed for the first time.
+          accessed for the first time. The attribute will be set at that time.
         - If the ``THUMBNAILS_DELAYED_GENERATION`` is not enabled, then
           all thumbnails are set as attributes of the ``BaseEnhancedImageFieldFile``
           object without performing any checks whether the file exists on the
@@ -186,7 +194,7 @@ class BaseEnhancedImageFieldFile(ImageFieldFile):
         # definitions exist and the source image has been saved.
         if self._committed and self.field.thumbnails:
             for identifier, proc_opts in self.field.thumbnails.items():
-                t = ThumbnailFieldFile(self.instance, self.field, self.name, identifier, proc_opts)
+                t = ThumbnailFieldFile(self.instance, self.field, self, self.name, identifier, proc_opts)
                 if settings.THUMBNAILS_DELAYED_GENERATION:
                     if self.storage.exists(t.name):
                         setattr(self, identifier, t)
@@ -219,12 +227,15 @@ class BaseEnhancedImageFieldFile(ImageFieldFile):
                 # an attribute to the ``BaseEnhancedImageFieldFile``.
                 proc_opts = self.field.thumbnails[attribute]
                 try:
+                    # TODO: try self.read() is the same thing
                     content = ContentFile(self.storage.open(self.name).read())
                 except IOError:
                     raise Exception('Could not set thumbnail attribute. Source image data not found.')
-                t = ThumbnailFieldFile(self.instance, self.field, self.name, attribute, proc_opts)
+                t = ThumbnailFieldFile(self.instance, self.field, self, self.name, attribute, proc_opts)
                 t.save(content)
-                self.__dict__[attribute] = t
+                #self.__dict__[attribute] = t
+                assert self.__dict__[attribute] == t, \
+                    Exception('Thumbnail attribute `%s` not set' % attribute)
         return self.__dict__[attribute]
     
     def save(self, name, content, save=True):
@@ -235,9 +246,8 @@ class BaseEnhancedImageFieldFile(ImageFieldFile):
         ``content``
             The file data.
         
-        If the ``process_source`` dictionary has been set on the
-        ``EnhancedImageField`` field, then the source image is also
-        processed before it is finally saved to the storage.
+        If the image processing options have been set, then the source image
+        is processed before it is finally saved to the storage.
         
         After the source file is saved, if the ``THUMBNAILS_DELAYED_GENERATION``
         setting has been enabled, no thumbnails are generated. The thumbnails
@@ -265,7 +275,7 @@ class BaseEnhancedImageFieldFile(ImageFieldFile):
         # Generate all thumbnails
         if self._committed and self.field.thumbnails:
             for identifier, proc_opts in self.field.thumbnails.items():
-                t = ThumbnailFieldFile(self.instance, self.field, self.name, identifier, proc_opts)
+                t = ThumbnailFieldFile(self.instance, self.field, self, self.name, identifier, proc_opts)
                 t.save(content)
     
     def delete(self, save=True):
@@ -277,7 +287,7 @@ class BaseEnhancedImageFieldFile(ImageFieldFile):
         # First try to delete the thumbnails
         if self._committed and self.field.thumbnails:
             for identifier, proc_opts in self.field.thumbnails.items():
-                t = ThumbnailFieldFile(self.instance, self.field, self.name, identifier, proc_opts)
+                t = ThumbnailFieldFile(self.instance, self.field, self, self.name, identifier, proc_opts)
                 t.delete()
         
         # Delete the source file

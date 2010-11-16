@@ -196,7 +196,7 @@ class BaseEnhancedImageFieldFile(ImageFieldFile):
         
         super(BaseEnhancedImageFieldFile, self).__init__(instance, field, name)
         
-        # Set ThumbnailSpec objects as attributes only if thumbnail
+        # Set thumbnail objects as attributes only if thumbnail
         # definitions exist and the source image has been saved.
         if self._committed and self.field.thumbnails:
             for identifier, proc_opts in self.field.thumbnails.items():

@@ -16,11 +16,10 @@ The EnhancedImageField
 Accessing thumbnails
 ====================
 
-.. automethod:: thumbnail_works.fields.EnhancedImageFieldFile.__init__
+.. autoclass:: thumbnail_works.fields.EnhancedImageFieldFile
 
 
-Thumbnail specification objects
-===============================
+Is that it?
+===========
 
-.. autoclass:: thumbnail_works.fields.ThumbnailSpec
-
+Indeed, that's pretty much all you can do with ``django-thumbnail-works``.

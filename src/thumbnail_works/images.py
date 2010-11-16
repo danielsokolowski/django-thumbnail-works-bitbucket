@@ -25,12 +25,13 @@ from thumbnail_works.utils import get_width_height_from_string
 class ImageProcessor:
     """Adds image processing support to ImageFieldFile or derived classes.
     
-    Required attributes::
+    Required instance attributes::
     
         self.identifier
         self.proc_opts
         self.name
-    
+        self.storage
+        
     """
     
     DEFAULT_OPTIONS = {
@@ -115,8 +116,20 @@ class ImageProcessor:
                 return os.path.join(root_dir, settings.THUMBNAILS_DIRNAME, image_filename)
             return os.path.join(root_dir, image_filename)
     
-    def process_image(self, content):
+    def get_image_content(self):
+        """Returns the image data as a ContentFile."""
+        try:
+            content = ContentFile(self.storage.open(self.name).read())
+        except IOError:
+            raise Exception('Could not access image data: %s' % self.name)
+        else:
+            return content
+    
+    def process_image(self, content=None):
         """Processes and returns the image data."""
+        
+        if content is None:
+            content = self.get_image_content()
         
         # Image.open() accepts a file-like object, but it is needed
         # to rewind it back to be able to get the data,

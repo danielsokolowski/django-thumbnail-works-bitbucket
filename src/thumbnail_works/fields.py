@@ -25,7 +25,6 @@
 #
 
 from django.db.models.fields.files import ImageField, ImageFieldFile
-from django.core.files.base import ContentFile
 
 from thumbnail_works.exceptions import ThumbnailOptionError
 from thumbnail_works import settings
@@ -77,7 +76,7 @@ class BaseThumbnailFieldFile(ImageFieldFile):
             raise ThumbnailOptionError('The identifier must be set to something on thumbnails')
         return identifier.replace(' ', '_')
     
-    def save(self, source_content):
+    def save(self, source_content=None):
         """Saves the thumbnail file.
         
         ``source_content``
@@ -87,6 +86,9 @@ class BaseThumbnailFieldFile(ImageFieldFile):
         source image's ImageFieldFile.
         
         """
+        if source_content is None:
+            source_content = self.source.get_image_content()
+            
         thumbnail_content = self.process_image(source_content)
         self.name = self.storage.save(self.name, thumbnail_content)
         
@@ -234,17 +236,11 @@ class BaseEnhancedImageFieldFile(ImageFieldFile):
             # Proceed to thumbnail generation only if a *thumbnail* attribute
             # is requested
             if self.field.thumbnails.has_key(attribute):
-                # Generate thumbnail and set the thumbnail object as
-                # an attribute to the ``BaseEnhancedImageFieldFile``.
+                # Generate thumbnail
+                self._require_file()
                 proc_opts = self.field.thumbnails[attribute]
-                try:
-                    # TODO: try self.read() is the same thing
-                    content = ContentFile(self.storage.open(self.name).read())
-                except IOError:
-                    raise Exception('Could not set thumbnail attribute. Source image data not found.')
                 t = ThumbnailFieldFile(self.instance, self.field, self, self.name, attribute, proc_opts)
-                t.save(content)
-                #self.__dict__[attribute] = t
+                t.save()
                 assert self.__dict__[attribute] == t, \
                     Exception('Thumbnail attribute `%s` not set' % attribute)
         return self.__dict__[attribute]

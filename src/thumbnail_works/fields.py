@@ -61,9 +61,12 @@ class BaseThumbnailFieldFile(ImageFieldFile):
             ``thumbnails`` dictionary.
         
         """
+        # Set the thumbnail identifier
         self.identifier = self.get_identifier(identifier)
+        # Set the image processing options for this image (thumbnail)
         self.setup_image_processing_options(proc_opts)
         self.source = source
+        
         name = self.generate_image_name(name=name)
         super(BaseThumbnailFieldFile, self).__init__(instance, field, name)
     
@@ -131,6 +134,7 @@ class ThumbnailFieldFile(BaseThumbnailFieldFile, ImageProcessor):
     """An ImageFieldFile with image processing capabilities for thumbnails."""
 
 
+
 class BaseEnhancedImageFieldFile(ImageFieldFile):
     """Enhanced version of the default ImageFieldFile for the source image.
     
@@ -190,8 +194,11 @@ class BaseEnhancedImageFieldFile(ImageFieldFile):
           generated when the source image was saved.
         
         """
-        self.identifier = None  # Only thumbnails have an identifier attribute
+        # Set the identifier to None. Only thumbnails have an identifier attribute
+        self.identifier = None
+        # Set the image processing options for this image (source image)
         self.setup_image_processing_options(field.process_source)
+        
         super(BaseEnhancedImageFieldFile, self).__init__(instance, field, name)
         
         # Set ThumbnailSpec objects as attributes only if thumbnail

@@ -182,18 +182,11 @@ class BaseEnhancedImageFieldFile(ImageFieldFile):
             deleted from the filesystem.
         
         Thumbnails are set as attributes of the ``BaseEnhancedImageFieldFile``
-        object (source image) according to the following rules:
+        object (source image) only if they exist on the storage.
         
-        - If the ``THUMBNAILS_DELAYED_GENERATION`` setting has been enabled, then
-          each thumbnail is set as an attribute of the source image only if the
-          thumbnail file exists on the storage. In the case that the thumbnail
-          does not exist on the storage, it will be generated as soon as it is
-          accessed for the first time. The attribute will be set at that time.
-        - If the ``THUMBNAILS_DELAYED_GENERATION`` is not enabled, then
-          all thumbnails are set as attributes of the ``BaseEnhancedImageFieldFile``
-          object without performing any checks whether the file exists on the
-          storage or not. The thumbnails are expected to have already been
-          generated when the source image was saved.
+        If the thumbnail files are not found on the storage at this time, they
+        will be generated the first time they are accessed regardless of the
+        THUMBNAILS_DELAYED_GENERATION ``setting``.
         
         """
         # Set the identifier to None. Only thumbnails have an identifier attribute
@@ -208,10 +201,7 @@ class BaseEnhancedImageFieldFile(ImageFieldFile):
         if self._committed and self.field.thumbnails:
             for identifier, proc_opts in self.field.thumbnails.items():
                 t = ThumbnailFieldFile(self.instance, self.field, self, self.name, identifier, proc_opts)
-                if settings.THUMBNAILS_DELAYED_GENERATION:
-                    if self.storage.exists(t.name):
-                        setattr(self, identifier, t)
-                else:
+                if self.storage.exists(t.name):
                     setattr(self, identifier, t)
     
     def __getattr__(self, attribute):

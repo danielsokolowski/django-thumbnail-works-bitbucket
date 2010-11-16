@@ -21,20 +21,15 @@ from thumbnail_works.exceptions import ThumbnailOptionError
 from thumbnail_works.utils import get_width_height_from_string
 
 
+
 class ImageProcessor:
-    """Adds image processing support to ImageFieldFile or derived classes
+    """Adds image processing support to ImageFieldFile or derived classes.
     
-    expects:
+    Required attributes::
     
-    self.identifier
-    self.proc_opts
-    
-    self.instance
-    
-    self.field
-    self.name
-    
-    generate_image_name()
+        self.identifier
+        self.proc_opts
+        self.name
     
     """
     
@@ -47,16 +42,22 @@ class ImageProcessor:
         }
     
     def setup_image_processing_options(self, proc_opts):
-        """Sets the image processing options for the image object.
+        """Sets the image processing options as an attribute of the
+        ImageFieldFile instance.
         
-        If ``proc_opts`` is None, then ``self.proc_opts`` is set to None,
-        which means that no processing should be performed on this image.
+        If ``proc_opts`` is ``None``, then ``self.proc_opts`` is also set to
+        ``None``. This is allowed in favor of the source image which may not be
+        processed.
         
         This method checks the provided options and also ensures that the
-        final dictionary contains all the supported options.
+        final dictionary contains all the supported options with a default
+        or a user-defined value.
         
         """
         if proc_opts is None:
+            if self.identifier is not None: # self is a thumbnail
+                raise ThumbnailOptionError('It is not possible to set the \
+                    image processing options to None on thumbnails')
             self.proc_opts = None
         elif not isinstance(proc_opts, dict):
             raise ThumbnailOptionError('A dictionary object is required')
@@ -68,7 +69,12 @@ class ImageProcessor:
             self.proc_opts.update(proc_opts)
     
     def get_image_extension(self):
-        """Returns the extension in accordance to the image format."""
+        """Returns the extension in accordance to the image format.
+        
+        If the image processing options ``self.proc_opts`` is not a dict,
+        None is returned.
+        
+        """
         if not isinstance(self.proc_opts, dict):
             return
         ext = self.proc_opts['format'].lower()
@@ -77,16 +83,19 @@ class ImageProcessor:
         return '.%s' % ext
     
     def generate_image_name(self, name=None, force_ext=None):
-        """
-        THUMBNAILS_DIRNAME
-        For urls and filesystem paths
+        """Generates a path for the image file taking the format into account.
         
-        self.name: images/photo.jpg
+        This method should be used by both the source image and thumbnails
+        to get their ``name`` attribute.
+        
+        name: images/photo.jpg
+        source: images/photo.<extension>
         thumbnail: images/<THUMBNAILS_DIRNAME>/photo.<identifier>.<extension>
+        
         """
         if name is None:
             if self.name is None:
-                raise Exception('We need a name')
+                raise Exception('A name is needed')
             name = self.name
         root_dir = os.path.dirname(name)  # images
         filename = os.path.basename(name)    # photo.jpg
@@ -97,23 +106,24 @@ class ImageProcessor:
             ext = self.get_image_extension()
             if ext is None:
                 ext = default_ext
-        if self.identifier is None:
+        if self.identifier is None: # For source images
             image_filename = '%s%s' % (base_filename, ext)
             return os.path.join(root_dir, image_filename)
-        else:
+        else:   # For thumbnails
             image_filename = '%s.%s%s' % (base_filename, self.identifier, ext)
             if settings.THUMBNAILS_DIRNAME:
                 return os.path.join(root_dir, settings.THUMBNAILS_DIRNAME, image_filename)
             return os.path.join(root_dir, image_filename)
     
     def process_image(self, content):
-    
+        """Processes and returns the image data."""
+        
         # Image.open() accepts a file-like object, but it is needed
         # to rewind it back to be able to get the data,
         content.seek(0)
         im = Image.open(content)
         
-        # Convert to RGB if necessary
+        # Convert to RGB format
         if im.mode not in ('L', 'RGB', 'RGBA'):
             im = im.convert('RGB')
         
@@ -145,7 +155,8 @@ class ImageProcessor:
         
         return ContentFile(data)
 
-
+    # Processors
+    
     def _resize(self, im, size, upscale):
         return crop_resize(im, size, exact_size=upscale)
     

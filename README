@@ -18,28 +18,32 @@ exists in the license_ section.
 
 **Warning**: This software is not production-ready!
 
+
 Features
---------
+========
+
 - Provides the ``EnhancedImageField`` model field, which is based on the
-  default Django ``ImageField``, that has the ability to generate and manage
+  default Django ``ImageField``, and has the ability to generate and manage
   thumbnails of the source image.
 - Supports *named* thumbnails which can be accessed as attributes of the
-  ``EnhancedImageField`` instance.
+  source image.
 - Uses the Django storages API to manage thumbnails.
-- Allows processing the original image before saving in the same manner that
-  thumbnails are processed.
+- Allows processing the source image in the same manner that thumbnails are
+  processed.
 - Individual processing options for each thumbnail.
 - Supports automatic image resizing and cropping to the user specified size.
-  Upscaling the smaller images is also possible.
-- Sharpen and detail filters.
-- Selection of the output format of each image, including the source image.
+  Scaling up smaller images is also possible.
+- *Sharpen* and *detail* filters.
+- You can specify the output format of each image, including the format of the
+  source image.
 - Supports delayed thumbnail generation, which means that thumbnails are
-  generated on first access.
+  generated the first time they are accessed.
 
-Thumbnail generation through template tags is not supported and there are
-no plans to support it in the near future. However, it is extremely easy
-to access the thumbnail atributes in your templates and display them in
-any way you see fit.
+Thumbnail generation using template tags is not supported and there are
+no plans to support it in the near future. The logic of this application
+is to define *named* thumbnails and access them as attributes of the source
+image. This way you only need to create your own template tags that display
+the thumbnails in any way you see fit.
 
 
 Documentation
@@ -56,7 +60,8 @@ at the project's wiki_.
 Donations
 =========
 
-A significant amount of time and effort has gone into developing this software
+This software is released as free-software and provided to you at no cost. However,
+a significant amount of time and effort has gone into developing this software
 and writing this documentation. So, the production of this software has not
 been free from cost. It is highly recommended that, if you use this software
 *in production*, you should consider making a donation.

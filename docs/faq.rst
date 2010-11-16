@@ -22,7 +22,7 @@ Donations
 **Please define use-in-production**
     *Use-in-production* refers to using this software to power a web site
     or to develop derivative works which are used to power a web site
-    in the internet or in a corporate intranet.
+    on the internet or in a corporate intranet.
 
 **How much should I donate?**
     This is totally up to you. If we all made a one dollar donation to each

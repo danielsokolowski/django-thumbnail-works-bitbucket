@@ -95,8 +95,8 @@ Contributions
 
 **I have a question related to the development of this software. Can I email you?**
     Certainly. But, please, note that it might take a while until I get back
-    to you. I am not in the computer software business and, unfortunately,
-    I am not always available via email. Thanks for your understanding.
+    to you. Unfortunately, I am not always available via email. Thanks for
+    your understanding.
 
 
 Support

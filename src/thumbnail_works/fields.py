@@ -28,106 +28,105 @@ from django.db.models.fields.files import ImageField, ImageFieldFile
 from django.core.files.base import ContentFile
 
 from thumbnail_works.exceptions import ThumbnailOptionError
-from thumbnail_works.utils import get_width_height_from_string, \
-    make_thumbnail_path, process_content_as_image
 from thumbnail_works import settings
+from thumbnail_works.images import ImageProcessor
 
 
-
-
-class ThumbnailSpec:
-    """Thumbnail specification.
+class BaseThumbnailFieldFile(ImageFieldFile):
+    """A derived class of Django's ImageFieldFile for thumbnails.
     
-    The thumbnail specification is not a file-like object.
+    Note that this class cannot be used on its own, but also requires
+    ``thumbnail_works.images.ImageProcessor`` or a derived class to
+    provide the image processing methods.
     
-    The following attributes are available.
-    
-    ``ident``
-        The thumbnail identifier as set in the ``thumbnails`` dictionary.
-    ``ext``
-        The thumbnail extension, which determined by the image format.
-    ``width``
-        The thumbnail width.
-    ``height``
-        The thumbnail height.
-    ``url``
-        The absolute thumbnail's URL.
-    ``path``
-        The absolute path of the thumbnail on the filesystem. Note that
-        this is only set for thumbnails that are stored locally. For
-        other storages a value of None is set.
-    ``name``
-        The path to the thumbnail relative to ``MEDIA_ROOT``.
-    ``options``
-        The thumbnail options as specified in ``EnhancedImageField.thumbnails``
-        and after filling any missing options with the defaults.
-        
     """
-    
-    DEFAULT_OPTIONS = {
-        'size': None,
-        'sharpen': False,
-        'detail': False,
-        'upscale': False,
-        'format': settings.THUMBNAILS_FORMAT,
-        }
-    
-    def __init__(self, ident, options, source):
+        
+    def __init__(self, instance, field, name, identifier, proc_opts):
         """Constructor
         
-        ``ident``
-            The thumbnail identifier as set in the ``thumbnails`` dictionary.
-        ``options``
-            The thumbnail options as set in the ``thumbnails`` dictionary.
-        ``source``
-            An instance of the ``EnhancedImageFieldFile``.
-        
-        
-        
-        """
-        if self._options_are_valid(options):
-            self.options = self._get_options(options)
-        self.ident = self._get_ident(ident)
-        self.ext = self._get_filename_extension_from_format()
-        self.width, self.height = get_width_height_from_string(options['size'])
-        self.url = make_thumbnail_path(source.url, self.ident)
-        self.path = make_thumbnail_path(source.path, self.ident)
-        self.name = make_thumbnail_path(source.name, self.ident)
-    
-    # Private API
-    
-    def _get_ident(self, ident):
-        return ident.replace(' ', '_')
-    
-    def _get_filename_extension_from_format(self):
-        """Returns an extension according to the format.
+        ``instance``
+            The instance of the model that contains the ``EnhancedImageField``.
+        ``field``
+            The instance of the ``EnhancedImageField``.
+        ``name``
+            the name of the source image. Needs to pass through
+            ``generate_image_name()`` to get a name for the thumbnail.
+        ``identifier``
+            the thumbnail identifier as set in the ``thumbnails`` dictionary.
+        ``proc_opts``
+            image processing options for this thumbnail as set in the
+            ``thumbnails`` dictionary.
         
         """
-        ext = self.options['format'].lower()
-        if ext == 'jpeg':
-            return '.jpg'
-        return '.%s' % ext
+        self.identifier = self.get_identifier(identifier)
+        self.setup_image_processing_options(proc_opts)
+        name = self.generate_image_name(name=name)
+        super(BaseThumbnailFieldFile, self).__init__(instance, field, name)
     
-    def _get_options(self, options):
-        """This method ensures that all the available options have a value.
+    def get_identifier(self, identifier):
+        if not isinstance(identifier, str):
+            raise ThumbnailOptionError('The identifier must be a string')
+        elif identifier == '':
+            raise ThumbnailOptionError('The identifier must be set to something on thumbnails')
+        return identifier.replace(' ', '_')
+    
+    def save(self, source_content):
+        """Saves the thumbnail file
+        
+        ``source_content``
+            The image data of the source image
+        
+        Also sets the current object (thumbnail) as an attribute of the
+        TODO:
         
         """
-        proc_opts = self.DEFAULT_OPTIONS.copy()
-        proc_opts.update(options)
-        return proc_opts
+        thumbnail_content = self.process_image(source_content)
+        self.name = self.storage.save(self.name, thumbnail_content)
+        
+        TODO:
+        setattr(self.field, self.identifier, self)
+
+        # Update the filesize cache
+        self._size = len(thumbnail_content)
+        self._committed = True
+
+    def delete(self):
+        # Only close the file if it's already open, which we know by the
+        # presence of self._file
+        if hasattr(self, '_file'):
+            self.close()
+            del self.file
+
+        self.storage.delete(self.name)
+
+        self.name = None
+        
+        TODO:
+        if hasattr(self.field, self.identifier):
+            delattr(self.field, self.identifier)
+
+        # Clear the image dimensions cache
+        if hasattr(self, '_dimensions_cache'):
+            del self._dimensions_cache
+        
+        # Delete the filesize cache
+        if hasattr(self, '_size'):
+            del self._size
+        self._committed = False
+
+
+class ThumbnailFieldFile(BaseThumbnailFieldFile, ImageProcessor):
+    pass
+
+
+class BaseEnhancedImageFieldFile(ImageFieldFile):
+    """Enhanced version of the default ImageFieldFile for the source image.
     
-    def _options_are_valid(self, options):
-        for option in options.keys():
-            if option not in self.DEFAULT_OPTIONS.keys():
-                raise ThumbnailOptionError('Invalid thumbnail option `%s`' % option)
-        return True
-
-
-
-class EnhancedImageFieldFile(ImageFieldFile):
-    """Enhanced version of the default ImageFieldFile.
+    Note that this class cannot be used on its own, but also requires
+    ``thumbnail_works.images.ImageProcessor`` or a derived class to
+    provide the image processing methods.
     
-    The EnhancedImageFieldFile supports:
+    The BaseEnhancedImageFieldFile supports:
     
     - resizing the original image before saving it to the specified storage.
     - generating thumbnails of the original image on the same storage:
@@ -137,121 +136,75 @@ class EnhancedImageFieldFile(ImageFieldFile):
     - a mechanism of accessing the thumbnails as attributes of the model's
       EnhancedImageField.
     
-    Notes for development
-
-    Throughout this object the following attributes that are inherited
-    from ``ImageFieldFile`` are used:
-    
-    - instance: The instance of the model that contains the
-      EnhancedImageField.
-    - field: The instance of the EnhancedImageField.
-    - storage: The ``storage`` attribute of the EnhancedImageField instance.
-    - _committed: boolean attribute that indicates whether the file object
-      has been committed to the database and therefore saved to the
-      storage or the file has been deleted from the database and therefore
-      deleted from the filesystem.
-    
-    Also the ``name`` attribute is set once the ``save()`` method has been
-    called. ``name`` is the name of the file including the relative path
-    from MEDIA_ROOT.
-    
     """
     
-    def __init__(self, *args, **kwargs):
-        """Thumbnails are set as attributes of the ``EnhancedImageFieldFile``
-        object.
+    def __init__(self, instance, field, name):
+        """Constructor
         
-        Each of the thumbnails that have been specified in the ``thumbnails``
-        dictionary are eventually set as attributes of the
-        ``EnhancedImageFieldFile`` object. Each thumbnail's identifier is
-        used as the attribute's name.
+        ``instance``
+            The instance of the model that contains the ``EnhancedImageField``.
+        ``field``
+            The instance of the ``EnhancedImageField``.
+        ``name``
+            the path of the file including the relative path from MEDIA_ROOT
+            and the actual filename.
         
-        For example, the *avatar* thumbnail of a *photo* field, would be
-        accessed as::
+        Note that the ``name`` attribute is re-set to the name (relative path)
+        of the image on the storage once the ``save()`` method has been called.
         
-            photo.avatar
+        The following ``BaseEnhancedImageFieldFile`` instance attributes are
+        set by ``ImageFieldFile.__init__()``:
+         
+        ``storage``
+            The ``storage`` attribute of the EnhancedImageField instance.
+        ``_committed``
+            boolean attribute that indicates whether the file object
+            has been committed to the database and therefore saved to the
+            storage or the file has been deleted from the database and therefore
+            deleted from the filesystem.
         
-        At this point, it should be noted that ``photo.avatar`` in the
-        above example is not a file object. It is an instance of the
-        ``ThumbnailSpec`` class, which represents the thumbnail specification.
-        So, whenever you read ``thumbnail``, this actually refers to a
-        **thumbnail specification object**.
+        Thumbnails are set as attributes of the ``BaseEnhancedImageFieldFile``
+        object according tot he following rules:
         
-        If the ``THUMBNAILS_DELAYED_GENERATION`` setting has been enabled, then
-        each thumbnail is set as an attribute of the ``EnhancedImageFieldFile``
-        object only if the thumbnail file exists on the storage. This check
-        is performed by the ``storage.exists()`` method, so if the thumbnail
-        files are stored remotely, this can be slow.
-        
-        In the case that ``storage.exists()`` indicates that the file does
-        not exist on the storage, the attribute of the ``EnhancedImageFieldFile``
-        object that represents the thumbnail is set to None.
-        
-        If the ``THUMBNAILS_DELAYED_GENERATION`` is not enabled, then
-        all thumbnails are set as attributes of the ``EnhancedImageFieldFile``
-        object without performing any checks whether the file exists on the
-        storage or not.
-        
-        If a thumbnail does not exist on the storage, it will be generated
-        and set as an attribute of the ``EnhancedImageFieldFile`` object as
-        soon as it is accessed for the first time.
+        - If the ``THUMBNAILS_DELAYED_GENERATION`` setting has been enabled, then
+          each thumbnail is set as an attribute of the source image only if the
+          thumbnail file exists on the storage. In the case that the thumbnail
+          does not exist on the storage, it will be generated as soon as it is
+          accessed for the first time.
+        - If the ``THUMBNAILS_DELAYED_GENERATION`` is not enabled, then
+          all thumbnails are set as attributes of the ``BaseEnhancedImageFieldFile``
+          object without performing any checks whether the file exists on the
+          storage or not. The thumbnails are expected to have already been
+          generated when the source image was saved.
         
         """
-        super(EnhancedImageFieldFile, self).__init__(*args, **kwargs)
+        self.identifier = None  # Only thumbnails have an identifier attribute
+        self.setup_image_processing_options(field.process_source)
+        super(BaseEnhancedImageFieldFile, self).__init__(instance, field, name)
         
         # Set ThumbnailSpec objects as attributes only if thumbnail
         # definitions exist and the source image has been saved.
         if self._committed and self.field.thumbnails:
-            for thumb_ident, proc_opts in self.field.thumbnails.items():
-                thumb_spec = ThumbnailSpec(thumb_ident, proc_opts, self)
-                if self.storage.exists(thumb_spec.name):
-                    setattr(self, thumb_ident, thumb_spec)
-                    # TODO: if delayed is disabled, do not run storage.exists() 
-                    # TODO: always set the attribute , but be None if file does not exist on the storage
-    
-    def generate_thumbnail(self, thumb_ident, proc_opts, content=None):
-        """Generates a thumbnail and returns the thumbnail specification.
-        
-        ``thumb_ident``
-            The name of the thumbnail as defined in ``self.field.thumbnails``.
-        ``proc_opts``
-            The thumbnail options as defined in ``self.field.thumbnails``.
-        ``content``: Image data.
-        
-        If the ``content`` argument is None, then the image data is read
-        from the storage. If IOError occurs while trying to read the
-        image data, returns None.
-        
-        """
-        if content is None:
-            try:
-                content = ContentFile(self.storage.open(self.name).read())
-            except IOError:
-                return None
-            
-        thumb_spec = ThumbnailSpec(thumb_ident, proc_opts, self)
-        processed_content = process_content_as_image(content, thumb_spec.options)
-        path = make_thumbnail_path(self.name, thumb_ident, force_ext=thumb_spec.ext)
-        path_saved = self.storage.save(path, processed_content)
-        
-        assert path == path_saved, 'The calculated \
-        thumbnail path `%s` and the actual path where the thumbnail \
-        was saved `%s` differ.'
-        
-        return thumb_spec
+            for identifier, proc_opts in self.field.thumbnails.items():
+                t = ThumbnailFieldFile(self.instance, self.field, self.name, identifier, proc_opts)
+                if settings.THUMBNAILS_DELAYED_GENERATION:
+                    if self.storage.exists(t.name):
+                        setattr(self, identifier, t)
+                else:
+                    setattr(self, identifier, t)
     
     def __getattr__(self, attribute):
-        """Retrieves any ``EnhancedImageFieldFile`` instance attribute.
+        """Retrieves any ``BaseEnhancedImageFieldFile`` instance attribute.
         
         If a thumbnail attribute is requested, but it has not been set as
-        an ``EnhancedImageFieldFile`` instance attribute, then:
+        an ``BaseEnhancedImageFieldFile`` instance attribute, then:
         
         1. Generate the thumbnail
-        2. Set it as an ``EnhancedImageFieldFile`` instance attribute
+        2. Set it as an ``BaseEnhancedImageFieldFile`` instance attribute
         
         Developer Notes
-        ---------------
-        Here we use the ``EnhancedImageFieldFile`` instance's __dict__ in
+        
+        Here we use the ``BaseEnhancedImageFieldFile`` instance's __dict__ in
         order to check or set the instance's attributes so as to avoid
         triggering a recursive call to this function.
         
@@ -259,14 +212,19 @@ class EnhancedImageFieldFile(ImageFieldFile):
         
         """
         if not self.__dict__.has_key(attribute):
-            # Proceed to thumbnail generation only if a thumbnail attribute
+            # Proceed to thumbnail generation only if a *thumbnail* attribute
             # is requested
             if self.field.thumbnails.has_key(attribute):
-                # Generate thumbnail and set the thumbnail specification as
-                # an attribute to the ``EnhancedImageFieldFile``.
+                # Generate thumbnail and set the thumbnail object as
+                # an attribute to the ``BaseEnhancedImageFieldFile``.
                 proc_opts = self.field.thumbnails[attribute]
-                thumb_spec = self.generate_thumbnail(attribute, proc_opts)
-                self.__dict__[attribute] = thumb_spec
+                try:
+                    content = ContentFile(self.storage.open(self.name).read())
+                except IOError:
+                    raise Exception('Could not set thumbnail attribute. Source image data not found.')
+                t = ThumbnailFieldFile(self.instance, self.field, self.name, attribute, proc_opts)
+                t.save(content)
+                self.__dict__[attribute] = t
         return self.__dict__[attribute]
     
     def save(self, name, content, save=True):
@@ -281,26 +239,24 @@ class EnhancedImageFieldFile(ImageFieldFile):
         ``EnhancedImageField`` field, then the source image is also
         processed before it is finally saved to the storage.
         
-        After the source file is saved, if the THUMBNAILS_DELAYED_GENERATION
+        After the source file is saved, if the ``THUMBNAILS_DELAYED_GENERATION``
         setting has been enabled, no thumbnails are generated. The thumbnails
         will be generated the first time they are accessed.
-        If THUMBNAILS_DELAYED_GENERATION is set to False, then all thumbnails
+        
+        If ``THUMBNAILS_DELAYED_GENERATION`` is set to False, then all thumbnails
         are generated as soon as the source image is saved.
         
         """
         
-        # Resize the source image if the process_source has been set.
-        if self.field.process_source is not None:
-            source_img_opts = self.field.process_source
-            thumb_spec = ThumbnailSpec('dummy', source_img_opts, self)
-            processed_content = process_content_as_image(content, thumb_spec.options)
+        # Resize the source image if image processing options have been set
+        if self.proc_opts is not None:
+            content = self.process_image(content)
             # The following sets the correct filename extension according
             # to the image format. 
-            name = '%s%s' % (name.rsplit('.', 1)[0], thumb_spec.ext)
-        else:
-            processed_content = content
+            name = self.generate_image_name()
         
-        super(EnhancedImageFieldFile, self).save(name, processed_content, save)
+        # Save the source image on the storage. Also re-sets ``self.name``
+        super(BaseEnhancedImageFieldFile, self).save(name, content, save)
         
         if settings.THUMBNAILS_DELAYED_GENERATION:
             # Thumbnails will be generated on first access
@@ -308,8 +264,9 @@ class EnhancedImageFieldFile(ImageFieldFile):
         
         # Generate all thumbnails
         if self._committed and self.field.thumbnails:
-            for thumb_ident, proc_opts in self.field.thumbnails.items():
-                thumb_spec = self.generate_thumbnail(thumb_ident, proc_opts, content=content)
+            for identifier, proc_opts in self.field.thumbnails.items():
+                t = ThumbnailFieldFile(self.instance, self.field, self.name, identifier, proc_opts)
+                t.save(content)
     
     def delete(self, save=True):
         """Deletes the thumbnails and the source image.
@@ -319,21 +276,49 @@ class EnhancedImageFieldFile(ImageFieldFile):
         """
         # First try to delete the thumbnails
         if self._committed and self.field.thumbnails:
-            for thumb_ident, proc_opts in self.field.thumbnails.items():
-                path = make_thumbnail_path(self.name, thumb_ident)
-                self.storage.delete(path)
+            for identifier, proc_opts in self.field.thumbnails.items():
+                t = ThumbnailFieldFile(self.instance, self.field, self.name, identifier, proc_opts)
+                t.delete()
         
         # Delete the source file
-        super(EnhancedImageFieldFile, self).delete(save)
+        super(BaseEnhancedImageFieldFile, self).delete(save)
 
+
+class EnhancedImageFieldFile(BaseEnhancedImageFieldFile, ImageProcessor):
+    """
+    Each of the thumbnails that have been specified in the ``thumbnails``
+    dictionary are eventually set as attributes of the source image object.
+    Each thumbnail's identifier is used as the name of the attribute.
+    
+    For example, the *avatar* thumbnail of a *photo* field, would be
+    accessed as::
+    
+        photo.avatar
+    
+    Thumbnails inherit all the attributes of Django's ``ImageFieldFile``
+    as described in the `file objects`_ documentation.
+    
+    .. _`file objects`: http://docs.djangoproject.com/en/1.2/ref/files/file/
+    
+    For instance, you can do something like the following in your templates::
+    
+        <img src="{{ photo.avatar.url }}"
+            width="{{ photo.avatar.width }}"
+            height="{{ photo.avatar.height }}"
+            alt='{{ user.name }}' />
+    
+    """
 
 
 class EnhancedImageField(ImageField):
-    """An enhanced version of Django's ``ImageField`` that supports thumbnails.
+    """This model field is an enhanced version of Django's ``ImageField``.
     
     *django-thumbnail-works* provides an enhanced version of the default Django's
-    ``ImageField``, which can generate thumbnails of the original image and also
-    process the original image before it is saved on the remote server.
+    ``ImageField``, which supports:
+    
+    - Processing the original image before it is saved on the remote server.
+    - Generating thumbnails of the source image and a mechanism of accessing
+      the thumbnails as attributes of the source image.
     
     The ``EnhancedImageField`` derives from the default ``ImageField`` and thus
     all attributes and methods of the default ``ImageField`` are inherited.
@@ -342,32 +327,36 @@ class EnhancedImageField(ImageField):
     supports the following:
     
     ``process_source``
-        A dictionary of *image processing options*. The same options that can
-        be used for the thumbnail generation can also be set in this attribute.
+        A dictionary of *image processing options*. The same options, that can
+        be used for the thumbnail generation, can also be set in this attribute.
         If this is set, the original image will be processed using the provided
         options before it is saved on the remote server. Contrariwise, if this
-        attribute is not set, the uploaded image is saved in its original form,
-        without any further processing.
+        attribute is not set or set to ``None``, the uploaded image is saved in
+        its original form, without any further processing. It should be noted that
+        setting this attribute to an empty dictionary still causes the source
+        image to be processed using default image processing options. This
+        practically means that the source image will be saved in the format
+        specified by the ``THUMBNAILS_FORMAT`` setting without any resizing or
+        filtering taking place.
     ``thumbnails``
         A dictionary of *thumbnail definitions*. The format of each thumbnail
         definition is::
     
             <thumbnail_identifier> : <image_processing_options>
         
-        Where:
-        
         **thumbnail_identifier**
-            Is a string that uniquely identifies the thumbnail. Note that this
-            identifier is used to access each thumbnail and is also used in the
-            generated filename of the thumbnail image file. See the example
-            at ghe end of this section for a more clear explanation.
+            Is a string that uniquely identifies the thumbnail. It is required
+            that all thumbnails use a unique identifier. This identifier is used
+            in the thumbnail access mechanism and is also used in the
+            generated filename of the thumbnail image file.
         **image_processing_options**
             This is a dictionary of options that will be used during the thumbnail
-            generation. Supported options are:
+            generation. This dictionary must be present on every thumbnail
+            definition. Any of the following supported options may be used:
             
             ``size``
                 A string of the format ``WIDTHxHEIGHT`` which represents the
-                size of the thumbnail.
+                size of the generated thumbnail.
             ``sharpen``
                 Boolean option. If set, the ``ImageFilter.SHARPEN`` filter will
                 be applied to the thumbnail.
@@ -378,11 +367,15 @@ class EnhancedImageField(ImageField):
                 Boolean option. By default, image resizing occurs only if
                 any of the source image dimensions is bigger than the dimension
                 indicated by the ``size`` option. If the ``upscale`` option is
-                set to True, resizing occurs even if the generated thumbnail
+                set to ``True``, resizing occurs even if the generated thumbnail
                 is bigger than the source image.
             ``format``
                 This is the format in which the thumbnail should be saved.
-                Valid values are those supported by PIL.
+                Valid values are those supported by the *Python Imaging Library*
+                (PIL). If it is not set, then the default format specified by
+                the ``THUMBNAILS_FORMAT`` setting will be used. In case the
+                format is set to ``JPEG``, the value of the ``THUMBNAILS_QUALITY``
+                is used as the quality when the image is saved.
     
     The following code snippet illustrates how to use the ``EnhancedImageField``::
 

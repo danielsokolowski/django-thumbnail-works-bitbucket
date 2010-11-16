@@ -23,7 +23,7 @@ django-thumbnail-works adds thumbnail support to the default ImageField.
 | **Development Web Site**: `django-thumbnail-works project <http://www.codetrax.org/projects/django-thumbnail-works>`_
 | **Source Code Repository**: `django-thumbnail-works source code <https://source.codetrax.org/hgroot/django-thumbnail-works>`_
 | **Documentation**: `django-thumbnail-works documentation <http://packages.python.org/django-thumbnail-works>`_
-| **Releases**: `django-thumbnail-works releases <http://pypi.python.org/pypi/django-thumbnail-works>`_
+| **Downloads**: `django-thumbnail-works releases <http://pypi.python.org/pypi/django-thumbnail-works>`_
 
 About this guide
 ================

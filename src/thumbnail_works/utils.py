@@ -24,21 +24,8 @@
 #  limitations under the License.
 #
 
-import os
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
-try:
-    from PIL import Image
-except ImportError:
-    import Image
-
-from django.core.files.base import ContentFile
-
 from thumbnail_works.exceptions import ImageSizeError
-from thumbnail_works import image_processors
-from thumbnail_works import settings
+
 
 
 def get_width_height_from_string(size):
@@ -61,65 +48,4 @@ def get_width_height_from_string(size):
     except ValueError:
         raise ImageSizeError('size\'s WIDTH and HEIGHT must be integers')
     return size_x, size_y
-
-
-def make_thumbnail_path(source_path, thumbnail_name, force_ext=None):
-    """
-    THUMBNAILS_DIRNAME
-    For urls and filesystem paths
-    
-    source_path: /media/images/photo.jpg
-    thumbnail: /media/images/photo.<thumbname>.jpg
-    """
-    if not source_path:
-        return
-    root_dir = os.path.dirname(source_path)  # /media/images
-    filename = os.path.basename(source_path)    # photo.jpg
-    base_filename, ext = os.path.splitext(filename)
-    if force_ext:
-        ext = force_ext
-    thumb_filename = '%s.%s%s' % (base_filename, thumbnail_name, ext)
-    if settings.THUMBNAILS_DIRNAME:
-        return os.path.join(root_dir, settings.THUMBNAILS_DIRNAME, thumb_filename)
-    return os.path.join(root_dir, '%s.%s%s' % (base_filename, thumbnail_name, ext))
-
-
-def process_content_as_image(content, options):
-    
-    # Image.open() accepts a file-like object, but it is needed
-    # to rewind it back to be able to get the data,
-    content.seek(0)
-    im = Image.open(content)
-    
-    # Convert to RGB if necessary
-    if im.mode not in ('L', 'RGB', 'RGBA'):
-        im = im.convert('RGB')
-    
-    # Process
-    size = options['size']
-    upscale = options['upscale']
-    if size is not None:
-        new_size = get_width_height_from_string(size)
-        im = image_processors.resize(im, new_size, upscale)
-    
-    sharpen = options['sharpen']
-    if sharpen:
-        im = image_processors.sharpen(im)
-    
-    detail = options['detail']
-    if detail:
-        im = image_processors.detail(im)
-    
-    # Save image data
-    format = options['format']
-    buffer = StringIO()
-
-    if format == 'JPEG':
-        im.save(buffer, format, quality=settings.THUMBNAILS_QUALITY)
-    else:
-        im.save(buffer, format)
-    
-    data = buffer.getvalue()
-    
-    return ContentFile(data)
 

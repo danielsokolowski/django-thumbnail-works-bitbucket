@@ -32,6 +32,7 @@ from thumbnail_works import settings
 from thumbnail_works.images import ImageProcessor
 
 
+
 class BaseThumbnailFieldFile(ImageFieldFile):
     """A derived class of Django's ImageFieldFile for thumbnails.
     
@@ -91,6 +92,7 @@ class BaseThumbnailFieldFile(ImageFieldFile):
 
         # Update the filesize cache
         self._size = len(thumbnail_content)
+        
         self._committed = True
 
     def delete(self):
@@ -110,6 +112,7 @@ class BaseThumbnailFieldFile(ImageFieldFile):
 
         self.name = None
         
+        # Clear the thumbnail attribute on the source image file
         if hasattr(self.source, self.identifier):
             delattr(self.source, self.identifier)
 
@@ -120,11 +123,12 @@ class BaseThumbnailFieldFile(ImageFieldFile):
         # Delete the filesize cache
         if hasattr(self, '_size'):
             del self._size
+        
         self._committed = False
 
 
 class ThumbnailFieldFile(BaseThumbnailFieldFile, ImageProcessor):
-    pass
+    """An ImageFieldFile with image processing capabilities for thumbnails."""
 
 
 class BaseEnhancedImageFieldFile(ImageFieldFile):

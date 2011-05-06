@@ -260,7 +260,7 @@ class BaseEnhancedImageFieldFile(ImageFieldFile):
             content = self.process_image(content)
             # The following sets the correct filename extension according
             # to the image format. 
-            name = self.generate_image_name()
+            name = self.generate_image_name(name=name)
         
         # Save the source image on the storage. Also re-sets ``self.name``
         super(BaseEnhancedImageFieldFile, self).save(name, content, save)

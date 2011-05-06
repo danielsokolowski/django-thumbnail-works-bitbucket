@@ -29,3 +29,6 @@ class ImageSizeError(Exception):
 
 class ThumbnailOptionError(Exception):
     pass
+
+class ThumbnailWorksError(Exception):
+    pass

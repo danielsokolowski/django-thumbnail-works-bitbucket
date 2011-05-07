@@ -204,16 +204,40 @@ class BaseEnhancedImageFieldFile(ImageFieldFile):
         # Set the image processing options for this image (source image)
         self.setup_image_processing_options(field.process_source)
         
-        super(BaseEnhancedImageFieldFile, self).__init__(instance, field, name) # Sets ``self.name`` among others
+        # Among others, also sets ``self.name``
+        super(BaseEnhancedImageFieldFile, self).__init__(instance, field, name)
         
-        # Set thumbnail objects as attributes only if thumbnail
-        # definitions exist and the source image has been saved.
-        if self._committed and self.field.thumbnails:
+        # Set thumbnail objects as attributes.
+        if self._verify_thumbnail_requirements():
             for identifier, proc_opts in self.field.thumbnails.items():
                 t = ThumbnailFieldFile(self.instance, self.field, self, self.name, identifier, proc_opts)
                 if self.storage.exists(t.name):
                     setattr(self, identifier, t)
     
+    def _verify_thumbnail_requirements(self):
+        """This function performs a series of checks to ensure flawless
+        thumbnail access, generation and management. It is a safety mechanism.
+        
+        Before using instanciating ``ThumbnailFieldFile`` you should run
+        this check. For example:
+        
+            if self._verify_thumbnail_requirements():
+                t = ThumbnailFieldFile(...)
+        
+        """
+        if not self._committed:
+            # TODO: documentation for this check
+            return False
+        elif not self.field.thumbnails:
+            # Check that a dictionary of *thumbnail definitions* has been set
+            # on the field.
+            return False
+        elif not self.name:
+            # Checks whether ``self.name`` (image path relative to MEDIA_ROOT)
+            # has been set. A 'name' is required for thumbnail management.
+            return False
+        return True
+        
     def __getattr__(self, attribute):
         """Retrieves any ``BaseEnhancedImageFieldFile`` instance attribute.
         
@@ -237,12 +261,13 @@ class BaseEnhancedImageFieldFile(ImageFieldFile):
             # is requested
             if self.field.thumbnails.has_key(attribute):
                 # Generate thumbnail
-                self._require_file()
-                proc_opts = self.field.thumbnails[attribute]
-                t = ThumbnailFieldFile(self.instance, self.field, self, self.name, attribute, proc_opts)
-                t.save()
-                assert self.__dict__[attribute] == t, \
-                    Exception('Thumbnail attribute `%s` not set' % attribute)
+                self._require_file()    # TODO: document this
+                if self._verify_thumbnail_requirements():
+                    proc_opts = self.field.thumbnails[attribute]
+                    t = ThumbnailFieldFile(self.instance, self.field, self, self.name, attribute, proc_opts)
+                    t.save()
+                    assert self.__dict__[attribute] == t, \
+                        Exception('Thumbnail attribute `%s` not set' % attribute)
         return self.__dict__[attribute]
     
     def save(self, name, content, save=True):
@@ -272,7 +297,8 @@ class BaseEnhancedImageFieldFile(ImageFieldFile):
             # to the image format. 
             name = self.generate_image_name(name=name)
         
-        # Save the source image on the storage. Also re-sets ``self.name``
+        # Save the source image on the storage.
+        # This also re-sets ``self.name``
         super(BaseEnhancedImageFieldFile, self).save(name, content, save)
         
         if settings.THUMBNAILS_DELAYED_GENERATION:
@@ -280,7 +306,7 @@ class BaseEnhancedImageFieldFile(ImageFieldFile):
             return
         
         # Generate all thumbnails
-        if self._committed and self.field.thumbnails:
+        if self._verify_thumbnail_requirements():
             for identifier, proc_opts in self.field.thumbnails.items():
                 t = ThumbnailFieldFile(self.instance, self.field, self, self.name, identifier, proc_opts)
                 t.save(content)
@@ -292,7 +318,7 @@ class BaseEnhancedImageFieldFile(ImageFieldFile):
         
         """
         # First try to delete the thumbnails
-        if self._committed and self.field.thumbnails:
+        if self._verify_thumbnail_requirements():
             for identifier, proc_opts in self.field.thumbnails.items():
                 t = ThumbnailFieldFile(self.instance, self.field, self, self.name, identifier, proc_opts)
                 t.delete()

@@ -27,6 +27,7 @@
 from django.db.models.fields.files import ImageField, ImageFieldFile
 
 from thumbnail_works.exceptions import ThumbnailOptionError
+from thumbnail_works.exceptions import ThumbnailWorksError
 from thumbnail_works import settings
 from thumbnail_works.images import ImageProcessor
 
@@ -59,14 +60,23 @@ class BaseThumbnailFieldFile(ImageFieldFile):
             image processing options for this thumbnail as set in the
             ``thumbnails`` dictionary.
         
+        The ``name`` attribute cannot be empty. By default, ``name`` contains is
+        a path relative to MEDIA_ROOT, eg: ``myimages/image1.png`` and is
+        mandatory in order to have thumbnail management.
+        
         """
+        if not name:
+            raise ThumbnailWorksError('The provided name is not usable: "%s"')
+        
         # Set the thumbnail identifier
         self.identifier = self.get_identifier(identifier)
         # Set the image processing options for this image (thumbnail)
         self.setup_image_processing_options(proc_opts)
         self.source = source
         
+        # Get a proper thumbnail name (relative path to MEDIA_ROOT)
         name = self.generate_image_name(name=name)
+        # self.name is set by the following 
         super(BaseThumbnailFieldFile, self).__init__(instance, field, name)
     
     def get_identifier(self, identifier):

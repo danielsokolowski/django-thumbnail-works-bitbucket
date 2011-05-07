@@ -60,7 +60,7 @@ class BaseThumbnailFieldFile(ImageFieldFile):
             image processing options for this thumbnail as set in the
             ``thumbnails`` dictionary.
         
-        The ``name`` attribute cannot be empty. By default, ``name`` contains is
+        The ``name`` attribute cannot be empty. By default, ``name`` contains
         a path relative to MEDIA_ROOT, eg: ``myimages/image1.png`` and is
         mandatory in order to have thumbnail management.
         
@@ -204,7 +204,7 @@ class BaseEnhancedImageFieldFile(ImageFieldFile):
         # Set the image processing options for this image (source image)
         self.setup_image_processing_options(field.process_source)
         
-        super(BaseEnhancedImageFieldFile, self).__init__(instance, field, name)
+        super(BaseEnhancedImageFieldFile, self).__init__(instance, field, name) # Sets ``self.name`` among others
         
         # Set thumbnail objects as attributes only if thumbnail
         # definitions exist and the source image has been saved.

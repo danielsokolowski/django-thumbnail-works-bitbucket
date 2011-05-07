@@ -427,6 +427,7 @@ class EnhancedImageField(ImageField):
         
         class MyModel(models.Model):
             photo = EnhancedImageField(
+                upload_to = 'attachments/images',
                 process_source = dict(
                     size='512x384', sharpen=True, upscale=True, format='JPEG'),
                 thumbnails = {

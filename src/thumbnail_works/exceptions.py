@@ -31,4 +31,14 @@ class ThumbnailOptionError(Exception):
     pass
 
 class ThumbnailWorksError(Exception):
+    """Internal thumbnail_works error.
+    
+    Should be raised any time a method encounters an argument having a bad type
+    or bad value. Write as many such checks as necessary in order to catch any
+    changes in the underlying framework.
+    
+    This is important, since this app is built on Django internal structures,
+    which might change without notice.
+    
+    """
     pass

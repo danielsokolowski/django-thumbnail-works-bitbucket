@@ -86,7 +86,7 @@ if __name__=='__main__':
         package_dir = {'': 'src'},
         packages = ['thumbnail_works'],
         include_package_data = True,
-        install_requires=read('requirements.txt').splitlines(),
+        #install_requires=read('requirements.txt').splitlines(),
         zip_safe = False,
     )
 

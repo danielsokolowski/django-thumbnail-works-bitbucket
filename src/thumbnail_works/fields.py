@@ -25,9 +25,11 @@
 #
 
 from django.db.models.fields.files import ImageField, ImageFieldFile
+from django.utils.encoding import smart_unicode
 
 from thumbnail_works.exceptions import ThumbnailOptionError
 from thumbnail_works.exceptions import ThumbnailWorksError
+from thumbnail_works.exceptions import NoAccessToImage
 from thumbnail_works import settings
 from thumbnail_works.images import ImageProcessor
 
@@ -96,14 +98,17 @@ class BaseThumbnailFieldFile(ImageFieldFile):
         source image's ImageFieldFile.
         
         """
-        if source_content is None:
-            source_content = self.source.get_image_content()
-            
-        thumbnail_content = self.process_image(source_content)
-        self.name = self.storage.save(self.name, thumbnail_content)
-        
         # Set the thumbnail as an attribute of the source image's ImageFieldFile
         setattr(self.source, self.identifier, self)
+
+        if source_content is None:
+            try:
+                source_content = self.source.get_image_content()
+            except NoAccessToImage:
+                return
+        
+        thumbnail_content = self.process_image(source_content)
+        self.name = self.storage.save(self.name, thumbnail_content)
 
         # Update the filesize cache
         self._size = len(thumbnail_content)
@@ -207,13 +212,6 @@ class BaseEnhancedImageFieldFile(ImageFieldFile):
         # Among others, also sets ``self.name``
         super(BaseEnhancedImageFieldFile, self).__init__(instance, field, name)
         
-        # Set thumbnail objects as attributes.
-        if self._verify_thumbnail_requirements():
-            for identifier, proc_opts in self.field.thumbnails.items():
-                t = ThumbnailFieldFile(self.instance, self.field, self, self.name, identifier, proc_opts)
-                if self.storage.exists(t.name):
-                    setattr(self, identifier, t)
-    
     def _verify_thumbnail_requirements(self):
         """This function performs a series of checks to ensure flawless
         thumbnail access, generation and management. It is a safety mechanism.
@@ -260,12 +258,15 @@ class BaseEnhancedImageFieldFile(ImageFieldFile):
             # Proceed to thumbnail generation only if a *thumbnail* attribute
             # is requested
             if self.field.thumbnails.has_key(attribute):
-                # Generate thumbnail
+                # Check thumbnail exists and generate it if need
                 self._require_file()    # TODO: document this
                 if self._verify_thumbnail_requirements():
                     proc_opts = self.field.thumbnails[attribute]
                     t = ThumbnailFieldFile(self.instance, self.field, self, self.name, attribute, proc_opts)
-                    t.save()
+                    if self.storage.exists(smart_unicode(t.name)):
+                        setattr(self, attribute, t)
+                    else:
+                        t.save()
                     assert self.__dict__[attribute] == t, \
                         Exception('Thumbnail attribute `%s` not set' % attribute)
         return self.__dict__[attribute]
@@ -292,7 +293,10 @@ class BaseEnhancedImageFieldFile(ImageFieldFile):
         
         # Resize the source image if image processing options have been set
         if self.proc_opts is not None:
-            content = self.process_image(content)
+            try:
+                content = self.process_image(content)
+            except NoAccessToImage:
+                pass
             # The following sets the correct filename extension according
             # to the image format. 
             name = self.generate_image_name(name=name)

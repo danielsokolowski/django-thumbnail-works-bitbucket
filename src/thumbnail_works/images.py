@@ -11,7 +11,7 @@ except ImportError:
     import Image
     import ImageFilter
 
-from cropresize import crop_resize
+from cropresize2 import CM_AUTO, crop_resize
 
 from django.core.files.base import ContentFile
 
@@ -40,6 +40,7 @@ class ImageProcessor:
         'sharpen': False,
         'detail': False,
         'upscale': False,
+        'crop': CM_AUTO,
         'format': settings.THUMBNAILS_FORMAT,
         }
     
@@ -159,9 +160,10 @@ class ImageProcessor:
         # Process
         size = self.proc_opts['size']
         upscale = self.proc_opts['upscale']
+        crop = self.proc_opts['crop']
         if size is not None:
             new_size = get_width_height_from_string(size)
-            im = self._resize(im, new_size, upscale)
+            im = self._resize(im, new_size, upscale, crop)
         
         sharpen = self.proc_opts['sharpen']
         if sharpen:
@@ -186,8 +188,8 @@ class ImageProcessor:
 
     # Processors
     
-    def _resize(self, im, size, upscale):
-        return crop_resize(im, size, exact_size=upscale)
+    def _resize(self, im, size, upscale, crop_mode):
+        return crop_resize(im, size, exact_size=upscale, crop_mode=crop_mode)
     
     def _sharpen(self, im):
         return im.filter(ImageFilter.SHARPEN)
